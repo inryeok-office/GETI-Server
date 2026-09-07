@@ -28,6 +28,9 @@ import team.inreok.getiserver.domain.notification.entity.type.DiscordMessageTemp
 import team.inreok.getiserver.domain.notification.repository.DiscordDeliveryRepository
 import team.inreok.getiserver.domain.notification.service.DiscordDeliveryRetryPolicy
 import team.inreok.getiserver.domain.program.query.ProgramDiscordPayloadQueryPort
+import team.inreok.getiserver.global.discord.DiscordChannelConfig
+import team.inreok.getiserver.global.discord.DiscordChannelProperties
+import team.inreok.getiserver.global.discord.DiscordChannelResolver
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
@@ -56,6 +59,12 @@ class DiscordDeliveryAdminQueryServiceImplTest {
             inquiryPayloadQueryPort = inquiryPayloadQueryPort,
             retryPolicy = DiscordDeliveryRetryPolicy(properties),
             properties = properties,
+            channelResolver =
+                DiscordChannelResolver(
+                    DiscordChannelProperties(
+                        channels = mapOf("job-notice" to DiscordChannelConfig("channel-1", "공고 공지")),
+                    ),
+                ),
         )
 
     // ---------- 목록과 대상 이름 ----------
@@ -209,7 +218,7 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         service().listRecent(DiscordDeliveryStatus.FAILED, PageRequest.of(0, 20))
 
         val statusCaptor = ArgumentCaptor.forClass(DiscordDeliveryStatus::class.java)
-        verify(deliveryRepository).findRecent(statusCaptor.capture(), any(), any(), anyPageable())
+        verify(deliveryRepository).findRecent(statusCaptor.capture(), any(), any(), anyPageable(), any(), any())
         assertThat(statusCaptor.value).isEqualTo(DiscordDeliveryStatus.FAILED)
     }
 
@@ -221,7 +230,9 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         service().listRecent(null, PageRequest.of(1, 50, Sort.by("createdAt").ascending()))
 
         val pageableCaptor = ArgumentCaptor.forClass(Pageable::class.java)
-        verify(deliveryRepository).findRecent(any(), any(), any(), pageableCaptor.capture() ?: Pageable.unpaged())
+        verify(
+            deliveryRepository,
+        ).findRecent(any(), any(), any(), pageableCaptor.capture() ?: Pageable.unpaged(), any(), any())
         assertThat(pageableCaptor.value.sort.isSorted).isFalse()
         assertThat(pageableCaptor.value.pageNumber).isEqualTo(1)
         assertThat(pageableCaptor.value.pageSize).isEqualTo(50)
@@ -245,7 +256,9 @@ class DiscordDeliveryAdminQueryServiceImplTest {
 
         service().listRecent(DiscordDeliveryStatus.FAILED, PageRequest.of(0, 20), startAt, endAt)
 
-        verify(deliveryRepository).findRecent(eq(DiscordDeliveryStatus.FAILED), eq(startAt), eq(endAt), anyPageable())
+        verify(
+            deliveryRepository,
+        ).findRecent(eq(DiscordDeliveryStatus.FAILED), eq(startAt), eq(endAt), anyPageable(), any(), any())
     }
 
     // ---------- Fixture ----------
@@ -263,7 +276,7 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         deliveries: List<DiscordDelivery>,
         latestIds: List<Long> = deliveries.mapNotNull { it.id },
     ) {
-        given(deliveryRepository.findRecent(any(), any(), any(), anyPageable()))
+        given(deliveryRepository.findRecent(any(), any(), any(), anyPageable(), any(), any()))
             .willReturn(PageImpl(deliveries, PageRequest.of(0, 20), deliveries.size.toLong()))
         given(deliveryRepository.findLatestDeliveryIds(anyTargetTypeSet(), anyIdSet())).willReturn(latestIds)
     }
