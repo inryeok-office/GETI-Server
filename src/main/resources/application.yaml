@@ -289,6 +289,15 @@ app:
     build-time: ${APP_BUILD_TIME:unknown}
     environment: ${APP_ENVIRONMENT:local}
 
+logging:
+  pattern:
+    # RequestIdFilter가 요청마다 MDC(requestId)에 남기는 값을 각 Log 라인에도 함께 출력한다.
+    # 응답의 meta.requestId / X-Request-Id 헤더로 받은 값으로 서버 Log를 바로 추적하기 위함이다
+    # (그 값이 로그에 찍히지 않아 requestId로 검색할 수 없던 문제 해결). Spring Boot 기본 Console/
+    # File 패턴의 level 세그먼트(LOG_LEVEL_PATTERN)에만 주입하는 방식이라 나머지 기본 패턴은
+    # 그대로 유지된다. requestId가 없는 요청 밖 Log는 빈 값(`[]`)으로 출력된다.
+    level: "%5p [%X{requestId:-}]"
+
 management:
   endpoints:
     web:
