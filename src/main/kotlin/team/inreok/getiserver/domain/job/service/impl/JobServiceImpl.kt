@@ -102,6 +102,7 @@ class JobServiceImpl(
         request: JobCreateRequest,
         createdByMemberId: Long,
     ): JobDetailResponse {
+        if (request.jobRole == null) throw JobValidationFailedException("수동 공고 등록에는 직무가 필요합니다.")
         if (request.status != JobStatus.DRAFT && request.status != JobStatus.PUBLISHED) {
             throw JobValidationFailedException("공고는 DRAFT 또는 PUBLISHED 상태로만 등록할 수 있습니다.")
         }
@@ -121,6 +122,7 @@ class JobServiceImpl(
             ).apply {
                 this.createdByMemberId = createdByMemberId
                 bodyMarkdown = request.content
+                jobRole = request.jobRole
                 externalUrl = request.externalUrl
                 recruitmentStartedAt = request.startDate
                 recruitmentEndedAt = request.endDate
@@ -471,6 +473,7 @@ private fun applyUpdatableFields(
             title = it
         }
         request.content?.let { bodyMarkdown = it }
+        request.jobRole?.let { jobRole = it }
         request.externalUrl?.let { externalUrl = it }
         request.startDate?.let { recruitmentStartedAt = it }
         request.endDate?.let { recruitmentEndedAt = it }

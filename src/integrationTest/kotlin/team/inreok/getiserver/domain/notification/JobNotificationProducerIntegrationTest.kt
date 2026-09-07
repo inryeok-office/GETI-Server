@@ -17,6 +17,7 @@ import team.inreok.getiserver.domain.company.repository.CompanyRepository
 import team.inreok.getiserver.domain.job.dto.JobCreateRequest
 import team.inreok.getiserver.domain.job.dto.JobStatusUpdateRequest
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.job.service.JobService
@@ -145,6 +146,7 @@ class JobNotificationProducerIntegrationTest {
         companyId = companyId,
         postingType = PostingType.GENERAL,
         applicationMethod = ApplicationMethod.EXTERNAL,
+        jobRole = JobRole.BACKEND,
         title = "게시 알림 Test용 채용공고",
         status = JobStatus.PUBLISHED,
         content = "## 모집 부문\n- 백엔드 개발자",

@@ -2,6 +2,7 @@ package team.inreok.getiserver.domain.job.upsert
 
 import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.modulith.NamedInterface
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import java.time.LocalDateTime
 
 /**
@@ -57,6 +58,8 @@ data class CollectedJobUpsertCommand(
         nullable = true,
     )
     val employmentType: String? = null,
+    @param:Schema(description = "Provider가 명확히 분류한 직무. 미분류는 null", example = "BACKEND", nullable = true)
+    val jobRole: JobRole? = null,
 )
 
 @NamedInterface

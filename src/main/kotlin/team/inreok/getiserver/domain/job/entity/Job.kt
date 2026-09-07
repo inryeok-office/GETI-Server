@@ -13,6 +13,7 @@ import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.annotations.UpdateTimestamp
 import org.hibernate.type.SqlTypes
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import java.time.LocalDateTime
@@ -107,4 +108,8 @@ class Job(
 
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "job_role", length = 30)
+    var jobRole: JobRole? = null
 }

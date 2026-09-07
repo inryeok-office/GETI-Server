@@ -36,6 +36,7 @@ data class JobIndexSnapshot(
     val postingType: String,
     /** `ApplicationMethod.name` */
     val applicationMethod: String,
+    val jobRole: String? = null,
     /** `JobStatus.name`. [JobIndexQueryPort]가 이미 공개 대상만 반환하므로 항상 PUBLISHED/CLOSED다. */
     val status: String,
     val companyId: Long,

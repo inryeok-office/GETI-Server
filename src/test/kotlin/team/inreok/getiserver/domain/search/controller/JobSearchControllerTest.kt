@@ -81,6 +81,7 @@ class JobSearchControllerTest
                     any(),
                     anyPageable(),
                     anyLong(),
+                    any(),
                 ),
             ).willReturn(searchResponse())
 
@@ -123,6 +124,7 @@ class JobSearchControllerTest
                     any(),
                     anyPageable(),
                     anyLong(),
+                    any(),
                 ),
             ).willReturn(searchResponse())
 
@@ -149,6 +151,7 @@ class JobSearchControllerTest
                     any(),
                     anyPageable(),
                     anyLong(),
+                    any(),
                 ),
             ).willReturn(searchResponse())
 
@@ -231,6 +234,7 @@ class JobSearchControllerTest
                     direction = any(),
                     pageable = anyPageable(),
                     requesterId = anyLong(),
+                    jobRole = any(),
                 ),
             ).willReturn(searchResponse())
 

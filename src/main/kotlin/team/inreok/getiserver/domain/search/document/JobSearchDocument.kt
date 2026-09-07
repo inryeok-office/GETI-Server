@@ -34,6 +34,8 @@ data class JobSearchDocument(
     val postingType: String,
     @Field(type = FieldType.Keyword)
     val applicationMethod: String,
+    @field:Field(type = FieldType.Keyword)
+    val jobRole: String? = null,
     @Field(type = FieldType.Keyword)
     val status: String,
     @Field(type = FieldType.Long)

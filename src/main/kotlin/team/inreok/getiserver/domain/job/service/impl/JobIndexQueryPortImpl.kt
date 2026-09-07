@@ -44,6 +44,7 @@ class JobIndexQueryPortImpl(
             content = job.bodyMarkdown,
             postingType = job.type.name,
             applicationMethod = job.applicationMethod.name,
+            jobRole = job.jobRole?.name,
             status = job.status.name,
             companyId = job.companyId,
             targetGrade = job.targetGrade,
