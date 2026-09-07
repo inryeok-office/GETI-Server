@@ -1,6 +1,7 @@
 package team.inreok.getiserver.domain.notification.service
 
 import org.springframework.data.domain.Pageable
+import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListItemResponse
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListResponse
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType
@@ -14,6 +15,8 @@ import java.time.LocalDateTime
  * 판정을 곁들인 **관리자 읽기 모델**이다. 이 Interface의 메서드는 어떤 상태도 바꾸지 않는다.
  */
 interface DiscordDeliveryAdminQueryService {
+    fun findById(deliveryId: Long): DiscordDeliveryListItemResponse
+
     /**
      * 대상 종류(JOB/PROGRAM/INQUIRY)를 가리지 않고 최근 Discord 전달 내역을 조회한다.
      *

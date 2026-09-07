@@ -122,6 +122,25 @@ class DiscordDeliveryAdminControllerTest
                 last = true,
             )
 
+        @Test
+        fun `개발자는 Discord 전달 내역 단건 상세를 조회할 수 있다`() {
+            given(discordDeliveryAdminQueryService.findById(42L)).willReturn(listItem())
+
+            mockMvc
+                .perform(get("/api/v1/admin/discord-deliveries/42").with(authOf(1L, "DEVELOPER")))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.data.deliveryId").value(42))
+                .andExpect(jsonPath("$.data.targetName").value("2026 상반기 신입 백엔드 개발자"))
+                .andExpect(jsonPath("$.data.action").value("CREATE"))
+        }
+
+        @Test
+        fun `교사는 Discord 전달 내역 단건 상세를 조회할 수 없고 403을 반환한다`() {
+            mockMvc
+                .perform(get("/api/v1/admin/discord-deliveries/42").with(authOf(1L, "TEACHER")))
+                .andExpect(status().isForbidden)
+        }
+
         private fun anyPageable(): Pageable = any(Pageable::class.java) ?: Pageable.unpaged()
 
         // --- 횡단 목록: 개발자 전용 ------------------------------------------------
