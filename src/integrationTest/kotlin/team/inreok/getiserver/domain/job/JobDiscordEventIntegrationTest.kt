@@ -20,6 +20,7 @@ import team.inreok.getiserver.domain.company.entity.type.CompanyType
 import team.inreok.getiserver.domain.company.repository.CompanyRepository
 import team.inreok.getiserver.domain.job.dto.JobCreateRequest
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.job.service.JobService
@@ -122,6 +123,7 @@ class JobDiscordEventIntegrationTest {
             companyId = companyId,
             postingType = PostingType.MOU,
             applicationMethod = ApplicationMethod.EXTERNAL,
+            jobRole = JobRole.BACKEND,
             title = "Discord Event 연동 Test용 채용 공고",
             status = JobStatus.PUBLISHED,
             content = "본문",

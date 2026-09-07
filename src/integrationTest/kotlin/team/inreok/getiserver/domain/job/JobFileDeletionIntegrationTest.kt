@@ -20,6 +20,7 @@ import team.inreok.getiserver.domain.file.repository.StoredFileRepository
 import team.inreok.getiserver.domain.job.dto.JobCreateRequest
 import team.inreok.getiserver.domain.job.dto.JobStatusUpdateRequest
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.job.service.JobService
@@ -72,6 +73,7 @@ class JobFileDeletionIntegrationTest {
                     companyId = companyId,
                     postingType = PostingType.MOU,
                     applicationMethod = ApplicationMethod.EXTERNAL,
+                    jobRole = JobRole.BACKEND,
                     title = "첨부파일 삭제 연동 Test용 공고",
                     status = JobStatus.DRAFT,
                     fileIds = listOf(fileId),
