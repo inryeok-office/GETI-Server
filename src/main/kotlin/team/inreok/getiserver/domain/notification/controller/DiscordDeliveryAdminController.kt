@@ -81,6 +81,9 @@ class DiscordDeliveryAdminController(
             엄격한 문의 관리 권한 기준을 따른다. 기본 page=0, size=20이며 최대 size=100이다.
             정렬은 최신순으로 고정이라 `sort` 파라미터는 무시한다.
 
+            `targetType`와 `channelId`를 함께 지정하면 해당 조건으로 좁힌다. `channelName`은
+            서버에 등록된 채널 Registry에서만 조회하며 Discord API를 호출하지 않는다.
+
             한 대상에 여러 전달이 있을 수 있다(예: 공고 게시 후 수정 시 CREATE·UPDATE 두 건).
             **재시도는 이 API가 제공하지 않고 대상별 기존 Endpoint**(`POST /api/v1/admin/jobs/
             {jobId}/discord/retry` 등)**를 사용한다.** 그 Endpoint는 대상의 가장 최근 전달만 다시
@@ -94,7 +97,7 @@ class DiscordDeliveryAdminController(
     )
     @ApiResponses(
         SwaggerApiResponse(responseCode = "200", description = "조회 성공(결과가 없으면 빈 목록)"),
-        SwaggerApiResponse(responseCode = "400", description = "status 값이 올바르지 않음 (TYPE_MISMATCH)"),
+        SwaggerApiResponse(responseCode = "400", description = "Filter 값이 올바르지 않음 (TYPE_MISMATCH)"),
         SwaggerApiResponse(responseCode = "401", description = "Access Token이 없거나 유효하지 않음 (UNAUTHORIZED)"),
         SwaggerApiResponse(responseCode = "403", description = "개발자 권한이 없음 (FORBIDDEN)"),
         SwaggerApiResponse(responseCode = "500", description = "서버 내부 오류"),
@@ -110,10 +113,25 @@ class DiscordDeliveryAdminController(
         @Parameter(description = "최근 시도 시각 상한(미포함, lastAttemptAt 기준).", example = "2026-08-26T00:00:00")
         @RequestParam(required = false)
         endAt: LocalDateTime?,
+        @Parameter(description = "대상 종류 Filter(선택). JOB, PROGRAM, INQUIRY 중 하나")
+        @RequestParam(required = false)
+        targetType: DiscordDeliveryTargetType?,
+        @Parameter(description = "Discord 채널 Snowflake Filter(선택)", example = "1234567890123456789")
+        @RequestParam(required = false)
+        channelId: String?,
         @Parameter(description = "Pagination(page: 0부터 시작, size: 기본 20, 최대 100). sort는 무시된다.")
         pageable: Pageable,
     ): ApiResponse<DiscordDeliveryListResponse> =
-        ApiResponse.of(discordDeliveryAdminQueryService.listRecent(status, pageable, startAt, endAt))
+        ApiResponse.of(
+            discordDeliveryAdminQueryService.listRecent(
+                status,
+                pageable,
+                startAt,
+                endAt,
+                targetType,
+                channelId,
+            ),
+        )
 
     @Operation(
         summary = "공고 Discord 전달 상태 조회",

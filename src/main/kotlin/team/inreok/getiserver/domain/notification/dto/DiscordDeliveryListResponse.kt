@@ -58,6 +58,8 @@ data class DiscordDeliveryListItemResponse(
     val action: DiscordDeliveryAction,
     @param:Schema(description = "전송에 사용한 Discord 채널 Snowflake", example = "1234567890123456789")
     val channelId: String,
+    @param:Schema(description = "Discord 채널 표시 이름. Registry에 없으면 null", nullable = true, example = "공고 공지")
+    val channelName: String?,
     @param:Schema(
         description = "Discord 메시지 ID. CREATE가 아직 성공하지 못했으면 null",
         example = "1111111111111111111",
