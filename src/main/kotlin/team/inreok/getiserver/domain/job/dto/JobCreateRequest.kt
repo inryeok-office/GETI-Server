@@ -3,6 +3,7 @@ package team.inreok.getiserver.domain.job.dto
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Size
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import java.time.LocalDateTime
@@ -48,6 +49,8 @@ data class JobCreateRequest(
         allowableValues = ["DRAFT", "PUBLISHED"],
     )
     val status: JobStatus,
+    @param:Schema(description = "공고 직무 분류. 수동 공고 등록 시 필수", example = "BACKEND", nullable = true)
+    val jobRole: JobRole? = null,
     @param:Schema(
         description = "Markdown 본문. PUBLISHED로 저장하려면 비어 있으면 안 된다.",
         example = "## 모집 부문\n- 백엔드 개발자",

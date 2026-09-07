@@ -15,6 +15,7 @@ import team.inreok.getiserver.domain.ai.entity.type.AiDifficulty
 import team.inreok.getiserver.domain.ai.entity.type.AiFitLevel
 import team.inreok.getiserver.domain.company.entity.type.CompanyType
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.search.dto.JobSearchResponse
 import team.inreok.getiserver.domain.search.dto.JobSort
@@ -85,6 +86,9 @@ class JobSearchController(
         @Parameter(description = "지원 방식 필터. INTERNAL(학교 지원) 또는 EXTERNAL(외부 지원)")
         @RequestParam(required = false)
         applicationMethod: ApplicationMethod?,
+        @Parameter(description = "공고 직무 분류 필터. 지정하면 해당 직무 공고만 반환", example = "BACKEND")
+        @RequestParam(required = false)
+        jobRole: JobRole?,
         @Parameter(description = "공고 상태 필터(선택). PUBLISHED 또는 CLOSED만 지정할 수 있다.")
         @RequestParam(required = false)
         status: PublicJobStatus?,
@@ -145,6 +149,7 @@ class JobSearchController(
                 direction,
                 pageable,
                 authentication.principal as Long,
+                jobRole,
             ),
         )
 }

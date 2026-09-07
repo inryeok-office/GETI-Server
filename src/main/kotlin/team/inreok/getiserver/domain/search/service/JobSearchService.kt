@@ -5,6 +5,7 @@ import team.inreok.getiserver.domain.ai.entity.type.AiDifficulty
 import team.inreok.getiserver.domain.ai.entity.type.AiFitLevel
 import team.inreok.getiserver.domain.company.entity.type.CompanyType
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.search.dto.JobSearchResponse
 import team.inreok.getiserver.domain.search.dto.JobSort
@@ -39,5 +40,6 @@ interface JobSearchService {
         direction: SortDirection?,
         pageable: Pageable,
         requesterId: Long,
+        jobRole: JobRole? = null,
     ): JobSearchResponse
 }
