@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListItemResponse
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListResponse
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryStatusResponse
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
@@ -56,6 +57,22 @@ class DiscordDeliveryAdminController(
     private val discordDeliveryAdminQueryService: DiscordDeliveryAdminQueryService,
     private val programManagerQueryPort: ProgramManagerQueryPort,
 ) {
+    @Operation(
+        summary = "Discord 전달 내역 단건 상세 조회",
+        description = "deliveryId로 Discord 전달 내역의 최신 상태와 재시도 정보를 조회한다. 개발자만 접근할 수 있다.",
+    )
+    @ApiResponses(
+        SwaggerApiResponse(responseCode = "200", description = "조회 성공"),
+        SwaggerApiResponse(responseCode = "401", description = "Access Token이 없거나 유효하지 않음 (UNAUTHORIZED)"),
+        SwaggerApiResponse(responseCode = "403", description = "개발자 권한이 없음 (FORBIDDEN)"),
+        SwaggerApiResponse(responseCode = "404", description = "Discord 전달 내역이 없음 (DISCORD_DELIVERY_NOT_FOUND)"),
+    )
+    @GetMapping("/api/v1/admin/discord-deliveries/{deliveryId}")
+    fun getDiscordDelivery(
+        @Parameter(description = "조회할 Discord 전달 ID", example = "42") @PathVariable deliveryId: Long,
+    ): ApiResponse<DiscordDeliveryListItemResponse> =
+        ApiResponse.of(discordDeliveryAdminQueryService.findById(deliveryId))
+
     @Operation(
         summary = "Discord 전달 내역 전체 목록 조회",
         description = """

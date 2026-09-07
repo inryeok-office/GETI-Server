@@ -13,6 +13,7 @@ import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListRespons
 import team.inreok.getiserver.domain.notification.entity.DiscordDelivery
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType
+import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotFoundException
 import team.inreok.getiserver.domain.notification.repository.DiscordDeliveryRepository
 import team.inreok.getiserver.domain.notification.service.DiscordDeliveryAdminQueryService
 import team.inreok.getiserver.domain.notification.service.DiscordDeliveryRetryPolicy
@@ -38,6 +39,17 @@ class DiscordDeliveryAdminQueryServiceImpl(
     private val retryPolicy: DiscordDeliveryRetryPolicy,
     private val properties: DiscordBotProperties,
 ) : DiscordDeliveryAdminQueryService {
+    @Transactional(readOnly = true)
+    override fun findById(deliveryId: Long): DiscordDeliveryListItemResponse {
+        val delivery =
+            deliveryRepository.findById(deliveryId).orElseThrow {
+                DiscordDeliveryNotFoundException(deliveryId)
+            }
+        val targetNames = loadTargetNames(listOf(delivery))
+        val latestDeliveryIds = loadLatestDeliveryIds(listOf(delivery))
+        return delivery.toListItemResponse(targetNames, latestDeliveryIds)
+    }
+
     @Transactional(readOnly = true)
     override fun listRecent(
         status: DiscordDeliveryStatus?,

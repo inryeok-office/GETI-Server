@@ -290,6 +290,7 @@ private fun AuthorizeHttpRequestsDsl.applyNormalSecurityRules() {
     // 알게 되어 바로 위 DEVELOPER 전용 규칙을 우회하는 셈이 된다. 하위 경로가 없는 단일
     // Endpoint라 "/**" 형태는 추가하지 않는다.
     authorize("/api/v1/admin/discord-deliveries", hasRole("DEVELOPER"))
+    authorize("/api/v1/admin/discord-deliveries/**", hasRole("DEVELOPER"))
     // 정기 작업 운영 상태는 개발자만 접근한다(Issue #227).
     authorize("/api/v1/admin/system/jobs", hasRole("DEVELOPER"))
     // 문의 등록·상세 조회는 학생·교사·개발자 모두 접근할 수 있으므로 인증만 요구한다.
