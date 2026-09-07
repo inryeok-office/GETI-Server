@@ -6,6 +6,7 @@ import team.inreok.getiserver.domain.job.access.JobAiAnalysisAccessSnapshot
 import team.inreok.getiserver.domain.job.access.JobApplicationEligibilityAccessSnapshot
 import team.inreok.getiserver.domain.job.entity.Job
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import java.time.LocalDateTime
@@ -44,6 +45,8 @@ data class JobDetailResponse(
     val postingType: PostingType,
     @param:Schema(description = "지원 방식", example = "EXTERNAL")
     val applicationMethod: ApplicationMethod,
+    @param:Schema(description = "공고 직무 분류. 미분류 외부 공고는 null", example = "BACKEND", nullable = true)
+    val jobRole: JobRole? = null,
     @param:Schema(description = "공고 상태", example = "PUBLISHED")
     val status: JobStatus,
     @param:Schema(
@@ -124,6 +127,7 @@ data class JobDetailResponse(
                 title = job.title,
                 postingType = job.type,
                 applicationMethod = job.applicationMethod,
+                jobRole = job.jobRole,
                 status = job.status,
                 company = company,
                 content = job.bodyMarkdown,

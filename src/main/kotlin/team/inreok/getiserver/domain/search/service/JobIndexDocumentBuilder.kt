@@ -48,6 +48,7 @@ class JobIndexDocumentBuilder(
             content = snapshot.content,
             postingType = snapshot.postingType,
             applicationMethod = snapshot.applicationMethod,
+            jobRole = snapshot.jobRole,
             status = snapshot.status,
             companyId = snapshot.companyId,
             // 공고 등록 후 기업이 삭제될 수 있다. company가 null이면 companyName도 null로 두고,

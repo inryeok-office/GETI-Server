@@ -60,6 +60,7 @@ class CollectedJobUpsertUseCaseImpl(
             recruitmentEndedAt = command.endDate
             location = normalizeShortText(command.location)
             employmentType = normalizeShortText(command.employmentType)
+            jobRole = command.jobRole
         }
 
         validateCommon(job)
@@ -99,7 +100,8 @@ class CollectedJobUpsertUseCaseImpl(
             existing.recruitmentStartedAt != command.startDate ||
             existing.recruitmentEndedAt != command.endDate ||
             existing.location != normalizeShortText(command.location) ||
-            existing.employmentType != normalizeShortText(command.employmentType)
+            existing.employmentType != normalizeShortText(command.employmentType) ||
+            existing.jobRole != command.jobRole
 
     /**
      * 외부 Provider가 준 근무지역·고용형태를 Column 제약에 맞게 정리한다(Issue #169).

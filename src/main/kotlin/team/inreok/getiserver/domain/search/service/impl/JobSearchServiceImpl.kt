@@ -14,6 +14,7 @@ import team.inreok.getiserver.domain.job.access.JobApplicationEligibilityAccessS
 import team.inreok.getiserver.domain.job.access.JobApplicationEligibilityAccessor
 import team.inreok.getiserver.domain.job.access.JobBookmarkAccessor
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.search.document.JobSearchDocument
 import team.inreok.getiserver.domain.search.dto.JobSearchResponse
@@ -51,6 +52,7 @@ class JobSearchServiceImpl(
         direction: SortDirection?,
         pageable: Pageable,
         requesterId: Long,
+        jobRole: JobRole?,
     ): JobSearchResponse {
         // 검색어를 보내지 않은 경우와 공백만 보낸 경우를 모두 "검색어 없음"으로 취급한다.
         val keyword = query?.trim()?.takeIf { it.isNotEmpty() }
@@ -67,6 +69,7 @@ class JobSearchServiceImpl(
                         statuses,
                         postingType,
                         applicationMethod,
+                        jobRole,
                         companyType,
                         trimmedSourceName,
                         targetGrade,
@@ -165,6 +168,7 @@ class JobSearchServiceImpl(
         statuses: Collection<String>,
         postingType: PostingType?,
         applicationMethod: ApplicationMethod?,
+        jobRole: JobRole?,
         companyType: CompanyType?,
         sourceName: String?,
         targetGrade: Int?,
@@ -181,6 +185,7 @@ class JobSearchServiceImpl(
                 }
                 postingType?.let { b.filter { f -> f.term { t -> t.field("postingType").value(it.name) } } }
                 applicationMethod?.let { b.filter { f -> f.term { t -> t.field("applicationMethod").value(it.name) } } }
+                jobRole?.let { b.filter { f -> f.term { t -> t.field("jobRole").value(it.name) } } }
                 companyType?.let { b.filter { f -> f.term { t -> t.field("companyType").value(it.name) } } }
                 sourceName?.let { b.filter { f -> f.term { t -> t.field("sourceName").value(it) } } }
                 targetGrade?.let { b.filter { f -> f.term { t -> t.field("targetGrade").value(it.toLong()) } } }

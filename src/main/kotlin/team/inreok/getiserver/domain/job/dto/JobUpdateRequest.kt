@@ -2,6 +2,7 @@ package team.inreok.getiserver.domain.job.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Size
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import java.time.LocalDateTime
 
 /**
@@ -26,6 +27,8 @@ import java.time.LocalDateTime
  */
 @Schema(description = "공고 부분 수정 요청. 전달한 Field만 반영되고 null이거나 생략한 Field는 기존 값을 유지한다.")
 data class JobUpdateRequest(
+    @param:Schema(description = "공고 직무 분류", example = "BACKEND", nullable = true)
+    val jobRole: JobRole? = null,
     @field:Size(max = 500, message = "공고 제목은 500자를 넘을 수 없습니다.")
     @param:Schema(description = "공고 제목", example = "2026 상반기 백엔드 채용(수정)", nullable = true, maxLength = 500)
     val title: String? = null,

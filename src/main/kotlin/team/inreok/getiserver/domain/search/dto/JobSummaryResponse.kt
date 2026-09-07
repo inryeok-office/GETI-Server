@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import team.inreok.getiserver.domain.company.query.CompanySummary
 import team.inreok.getiserver.domain.job.access.JobApplicationEligibilityAccessSnapshot
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.search.document.JobSearchDocument
@@ -19,6 +20,8 @@ data class JobSummaryResponse(
     val postingType: PostingType,
     @param:Schema(description = "지원 방식", example = "EXTERNAL")
     val applicationMethod: ApplicationMethod,
+    @param:Schema(description = "공고 직무 분류. 미분류 외부 공고는 null", example = "BACKEND", nullable = true)
+    val jobRole: JobRole? = null,
     @param:Schema(description = "공고 상태", example = "PUBLISHED")
     val status: JobStatus,
     @param:Schema(
@@ -86,6 +89,7 @@ data class JobSummaryResponse(
                 title = document.title,
                 postingType = PostingType.valueOf(document.postingType),
                 applicationMethod = ApplicationMethod.valueOf(document.applicationMethod),
+                jobRole = document.jobRole?.let(JobRole::valueOf),
                 status = JobStatus.valueOf(document.status),
                 company =
                     document.companyName?.let {

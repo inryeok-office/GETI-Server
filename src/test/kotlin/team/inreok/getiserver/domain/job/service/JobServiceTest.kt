@@ -39,6 +39,7 @@ import team.inreok.getiserver.domain.job.dto.JobStatusUpdateRequest
 import team.inreok.getiserver.domain.job.dto.JobUpdateRequest
 import team.inreok.getiserver.domain.job.entity.Job
 import team.inreok.getiserver.domain.job.entity.type.ApplicationMethod
+import team.inreok.getiserver.domain.job.entity.type.JobRole
 import team.inreok.getiserver.domain.job.entity.type.JobStatus
 import team.inreok.getiserver.domain.job.entity.type.PostingType
 import team.inreok.getiserver.domain.job.event.JobDiscordAction
@@ -973,6 +974,7 @@ class JobServiceTest {
         title: String = "2026 상반기 백엔드 채용",
         status: JobStatus = JobStatus.DRAFT,
         applicationMethod: ApplicationMethod = ApplicationMethod.EXTERNAL,
+        jobRole: JobRole? = JobRole.BACKEND,
         content: String? = null,
         externalUrl: String? = null,
         startDate: LocalDateTime? = null,
@@ -988,6 +990,7 @@ class JobServiceTest {
         applicationMethod = applicationMethod,
         title = title,
         status = status,
+        jobRole = jobRole,
         content = content,
         externalUrl = externalUrl,
         startDate = startDate,
