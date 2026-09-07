@@ -17,6 +17,7 @@ import team.inreok.getiserver.domain.notification.repository.DiscordDeliveryRepo
 import team.inreok.getiserver.domain.notification.service.DiscordDeliveryAdminQueryService
 import team.inreok.getiserver.domain.notification.service.DiscordDeliveryRetryPolicy
 import team.inreok.getiserver.domain.program.query.ProgramDiscordPayloadQueryPort
+import team.inreok.getiserver.global.discord.DiscordChannelResolver
 import java.time.LocalDateTime
 
 /**
@@ -37,13 +38,28 @@ class DiscordDeliveryAdminQueryServiceImpl(
     private val inquiryPayloadQueryPort: InquiryDiscordPayloadQueryPort,
     private val retryPolicy: DiscordDeliveryRetryPolicy,
     private val properties: DiscordBotProperties,
+    private val channelResolver: DiscordChannelResolver,
 ) : DiscordDeliveryAdminQueryService {
+    fun listRecent(
+        status: DiscordDeliveryStatus?,
+        pageable: Pageable,
+    ) = listRecent(status, pageable, null, null, null, null)
+
+    fun listRecent(
+        status: DiscordDeliveryStatus?,
+        pageable: Pageable,
+        startAt: LocalDateTime?,
+        endAt: LocalDateTime?,
+    ) = listRecent(status, pageable, startAt, endAt, null, null)
+
     @Transactional(readOnly = true)
     override fun listRecent(
         status: DiscordDeliveryStatus?,
         pageable: Pageable,
         startAt: LocalDateTime?,
         endAt: LocalDateTime?,
+        targetType: DiscordDeliveryTargetType?,
+        channelId: String?,
     ): DiscordDeliveryListResponse {
         // 정렬은 Repository Query가 id DESC로 고정한다. 클라이언트가 보낸 Sort를 그대로 넘기면
         // JPQL의 ORDER BY와 충돌하므로 Page 정보만 남긴다(NotificationServiceImpl.list와 동일).
@@ -53,6 +69,8 @@ class DiscordDeliveryAdminQueryServiceImpl(
                 startAt,
                 endAt,
                 PageRequest.of(pageable.pageNumber, pageable.pageSize),
+                targetType,
+                channelId,
             )
         if (page.isEmpty) return page.toListResponse(emptyMap(), emptySet())
 
@@ -120,6 +138,7 @@ class DiscordDeliveryAdminQueryServiceImpl(
             targetName = targetNames[TargetRef(targetType, targetId)],
             action = action,
             channelId = channelId,
+            channelName = channelResolver.displayNameOf(channelId),
             messageId = discordMessageId,
             status = status,
             automaticRetryCount = automaticRetryCount,

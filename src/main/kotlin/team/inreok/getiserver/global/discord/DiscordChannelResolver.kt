@@ -44,6 +44,13 @@ class DiscordChannelResolver(
 
     fun resolveInquiryChannelId(): String? = channelIdOf(properties.inquiryChannelKey)
 
+    /** 저장된 채널 Snowflake에 대응하는 사람이 읽을 이름이다. 미등록 채널은 null이다. */
+    fun displayNameOf(channelId: String): String? =
+        properties.channels.values
+            .firstOrNull { it.channelId == channelId }
+            ?.displayName
+            ?.takeIf { it.isNotBlank() }
+
     /**
      * 학년 목록을 Mention Role Snowflake 목록으로 바꾼다. 매핑이 없는 학년은 조용히 빠진다 —
      * Role이 없다고 Delivery 생성 자체를 막을 이유는 없다(Mention은 부가 기능).

@@ -44,6 +44,8 @@ interface DiscordDeliveryRepository : JpaRepository<DiscordDelivery, Long> {
             d.lastAttemptAt < COALESCE(:endAt, CURRENT_TIMESTAMP)
             OR COALESCE(:endAt, d.lastAttemptAt) IS NULL
           )
+          AND (:targetType IS NULL OR d.targetType = :targetType)
+          AND (:channelId IS NULL OR d.channelId = :channelId)
         ORDER BY d.id DESC
         """,
     )
@@ -52,6 +54,8 @@ interface DiscordDeliveryRepository : JpaRepository<DiscordDelivery, Long> {
         @Param("startAt") startAt: LocalDateTime? = null,
         @Param("endAt") endAt: LocalDateTime? = null,
         pageable: Pageable,
+        @Param("targetType") targetType: DiscordDeliveryTargetType? = null,
+        @Param("channelId") channelId: String? = null,
     ): Page<DiscordDelivery>
 
     /**

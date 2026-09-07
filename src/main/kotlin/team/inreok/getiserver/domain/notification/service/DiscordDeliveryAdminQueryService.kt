@@ -3,6 +3,7 @@ package team.inreok.getiserver.domain.notification.service
 import org.springframework.data.domain.Pageable
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListResponse
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
+import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType
 import java.time.LocalDateTime
 
 /**
@@ -24,5 +25,7 @@ interface DiscordDeliveryAdminQueryService {
         pageable: Pageable,
         startAt: LocalDateTime? = null,
         endAt: LocalDateTime? = null,
+        targetType: DiscordDeliveryTargetType? = null,
+        channelId: String? = null,
     ): DiscordDeliveryListResponse
 }
