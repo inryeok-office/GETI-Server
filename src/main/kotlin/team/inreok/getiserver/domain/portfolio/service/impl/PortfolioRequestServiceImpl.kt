@@ -1,5 +1,6 @@
 package team.inreok.getiserver.domain.portfolio.service.impl
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,6 +15,7 @@ import team.inreok.getiserver.domain.portfolio.entity.PortfolioRequest
 import team.inreok.getiserver.domain.portfolio.entity.PortfolioRequestTarget
 import team.inreok.getiserver.domain.portfolio.entity.type.PortfolioRequestStatus
 import team.inreok.getiserver.domain.portfolio.entity.type.PortfolioSubmissionStatus
+import team.inreok.getiserver.domain.portfolio.event.PortfolioRequestPublishedEvent
 import team.inreok.getiserver.domain.portfolio.exception.InvalidTargetStudentException
 import team.inreok.getiserver.domain.portfolio.exception.NotRequestTargetException
 import team.inreok.getiserver.domain.portfolio.exception.PortfolioRequestNotEditableException
@@ -35,6 +37,7 @@ class PortfolioRequestServiceImpl(
     private val targetRepository: PortfolioRequestTargetRepository,
     private val submissionRepository: PortfolioSubmissionRepository,
     private val targetMemberQueryPort: PortfolioTargetMemberQueryPort,
+    private val eventPublisher: ApplicationEventPublisher,
 ) : PortfolioRequestService {
     @Transactional
     override fun create(
@@ -118,6 +121,12 @@ class PortfolioRequestServiceImpl(
         entity.status = target
 
         requestRepository.flush()
+        if (target == PortfolioRequestStatus.PUBLISHED) {
+            // 공개는 DRAFT에서만 올 수 있어(allowedTransitions) 한 요청당 생애주기에 최대 한 번만
+            // 발행된다. 구독 측(notification)이 requestId를 그대로 Idempotency 식별자로 쓸 수 있는
+            // 근거다(Issue #331). 수신자는 Event에 담지 않고 구독 측이 Query Port로 조회한다.
+            eventPublisher.publishEvent(PortfolioRequestPublishedEvent(requestId, entity.title, entity.dueAt))
+        }
         return detailOf(entity)
     }
 

@@ -13,7 +13,9 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import team.inreok.getiserver.domain.member.query.PortfolioTargetMemberQueryPort
@@ -23,6 +25,7 @@ import team.inreok.getiserver.domain.portfolio.dto.PortfolioRequestUpdateRequest
 import team.inreok.getiserver.domain.portfolio.entity.PortfolioRequest
 import team.inreok.getiserver.domain.portfolio.entity.type.PortfolioRequestStatus
 import team.inreok.getiserver.domain.portfolio.entity.type.PortfolioSubmissionStatus
+import team.inreok.getiserver.domain.portfolio.event.PortfolioRequestPublishedEvent
 import team.inreok.getiserver.domain.portfolio.exception.InvalidTargetStudentException
 import team.inreok.getiserver.domain.portfolio.exception.NotRequestTargetException
 import team.inreok.getiserver.domain.portfolio.exception.PortfolioRequestNotEditableException
@@ -50,8 +53,17 @@ class PortfolioRequestServiceTest {
     @Mock
     private lateinit var targetMemberQueryPort: PortfolioTargetMemberQueryPort
 
+    @Mock
+    private lateinit var eventPublisher: ApplicationEventPublisher
+
     private val service by lazy {
-        PortfolioRequestServiceImpl(requestRepository, targetRepository, submissionRepository, targetMemberQueryPort)
+        PortfolioRequestServiceImpl(
+            requestRepository,
+            targetRepository,
+            submissionRepository,
+            targetMemberQueryPort,
+            eventPublisher,
+        )
     }
 
     // --- create ---
@@ -158,6 +170,34 @@ class PortfolioRequestServiceTest {
     }
 
     @Test
+    fun `공개하면 대상 학생 알림을 위한 PortfolioRequestPublishedEvent를 발행한다`() {
+        val entity = requestOf(id = 5L, status = PortfolioRequestStatus.DRAFT, title = "3학년 포트폴리오")
+        given(requestRepository.findByIdAndDeletedAtIsNull(5L)).willReturn(entity)
+        givenCounts(5L, target = 3L)
+
+        service.changeStatus(5L, PortfolioRequestStatusUpdateRequest(PortfolioRequestStatus.PUBLISHED))
+
+        verify(eventPublisher).publishEvent(
+            PortfolioRequestPublishedEvent(
+                requestId = 5L,
+                title = "3학년 포트폴리오",
+                dueAt = LocalDateTime.of(2026, 9, 30, 23, 59),
+            ),
+        )
+    }
+
+    @Test
+    fun `공개가 아닌 상태 전이에서는 Event를 발행하지 않는다`() {
+        val entity = requestOf(id = 5L, status = PortfolioRequestStatus.PUBLISHED)
+        given(requestRepository.findByIdAndDeletedAtIsNull(5L)).willReturn(entity)
+        givenCounts(5L, target = 1L)
+
+        service.changeStatus(5L, PortfolioRequestStatusUpdateRequest(PortfolioRequestStatus.CLOSED))
+
+        verifyNoInteractions(eventPublisher)
+    }
+
+    @Test
     fun `대상이 없으면 공개할 수 없다`() {
         given(requestRepository.findByIdAndDeletedAtIsNull(5L))
             .willReturn(requestOf(id = 5L, status = PortfolioRequestStatus.DRAFT))
@@ -166,6 +206,7 @@ class PortfolioRequestServiceTest {
         assertThatThrownBy {
             service.changeStatus(5L, PortfolioRequestStatusUpdateRequest(PortfolioRequestStatus.PUBLISHED))
         }.isInstanceOf(TargetStudentRequiredException::class.java)
+        verifyNoInteractions(eventPublisher)
     }
 
     @Test
