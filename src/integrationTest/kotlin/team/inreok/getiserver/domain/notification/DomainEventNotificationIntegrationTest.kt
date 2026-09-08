@@ -29,6 +29,10 @@ import team.inreok.getiserver.domain.notification.entity.Notification
 import team.inreok.getiserver.domain.notification.entity.type.NotificationTargetType
 import team.inreok.getiserver.domain.notification.entity.type.NotificationType
 import team.inreok.getiserver.domain.notification.repository.NotificationRepository
+import team.inreok.getiserver.domain.portfolio.dto.PortfolioRequestCreateRequest
+import team.inreok.getiserver.domain.portfolio.dto.PortfolioRequestStatusUpdateRequest
+import team.inreok.getiserver.domain.portfolio.entity.type.PortfolioRequestStatus
+import team.inreok.getiserver.domain.portfolio.service.PortfolioRequestService
 import team.inreok.getiserver.domain.program.dto.ProgramApplicationActionRequest
 import team.inreok.getiserver.domain.program.dto.ProgramCreateRequest
 import team.inreok.getiserver.domain.program.dto.ProgramStatusUpdateRequest
@@ -95,6 +99,9 @@ class DomainEventNotificationIntegrationTest {
 
     @Autowired
     private lateinit var programApplicationRepository: ProgramApplicationRepository
+
+    @Autowired
+    private lateinit var portfolioRequestService: PortfolioRequestService
 
     @Autowired
     private lateinit var notificationRepository: NotificationRepository
@@ -274,6 +281,69 @@ class DomainEventNotificationIntegrationTest {
 
         val teacherNotification = awaitNotificationCount(teacherId, 2).first()
         assertThat(teacherNotification.type).isEqualTo(NotificationType.PROGRAM_APPLICATION_CANCELED)
+    }
+
+    @Test
+    fun `포트폴리오 수합 요청을 공개하면 대상 학생에게만 PORTFOLIO_REQUEST_PUBLISHED 알림이 생성된다`() {
+        val teacherId = requireNotNull(createMember("portfolio-publish-teacher").id)
+        val targetStudentId = createStudentMember("portfolio-publish-target", grade = 3)
+        val otherStudentId = createStudentMember("portfolio-publish-other", grade = 3)
+        val requestId =
+            portfolioRequestService
+                .create(
+                    PortfolioRequestCreateRequest(
+                        title = "공개 알림 Test용 수합",
+                        description = "설명",
+                        dueAt = LocalDateTime.of(2026, 12, 31, 23, 59),
+                        targetStudentIds = listOf(targetStudentId),
+                    ),
+                    createdByMemberId = teacherId,
+                ).requestId
+
+        portfolioRequestService.changeStatus(
+            requestId,
+            PortfolioRequestStatusUpdateRequest(status = PortfolioRequestStatus.PUBLISHED),
+        )
+
+        val notification = awaitSingleNotification(targetStudentId)
+        assertThat(notification.type).isEqualTo(NotificationType.PORTFOLIO_REQUEST_PUBLISHED)
+        assertThat(notification.targetType).isEqualTo(NotificationTargetType.PORTFOLIO_REQUEST)
+        assertThat(notification.targetId).isEqualTo(requestId)
+        assertThat(notification.content).contains("공개 알림 Test용 수합")
+
+        // 대상으로 지정되지 않은 학생은 알림을 받지 않는다.
+        assertNoNotificationAppears(otherStudentId)
+    }
+
+    @Test
+    fun `공개가 아닌 상태 전이에서는 대상 학생에게 알림이 생성되지 않는다`() {
+        val teacherId = requireNotNull(createMember("portfolio-close-teacher").id)
+        val targetStudentId = createStudentMember("portfolio-close-target", grade = 3)
+        val requestId =
+            portfolioRequestService
+                .create(
+                    PortfolioRequestCreateRequest(
+                        title = "마감 Test용 수합",
+                        description = null,
+                        dueAt = LocalDateTime.of(2026, 12, 31, 23, 59),
+                        targetStudentIds = listOf(targetStudentId),
+                    ),
+                    createdByMemberId = teacherId,
+                ).requestId
+        portfolioRequestService.changeStatus(
+            requestId,
+            PortfolioRequestStatusUpdateRequest(status = PortfolioRequestStatus.PUBLISHED),
+        )
+        awaitSingleNotification(targetStudentId)
+
+        portfolioRequestService.changeStatus(
+            requestId,
+            PortfolioRequestStatusUpdateRequest(status = PortfolioRequestStatus.CLOSED),
+        )
+
+        // 마감은 알림 대상이 아니므로 공개 알림 1건에서 늘어나지 않는다.
+        Thread.sleep(SETTLE_MILLIS)
+        assertThat(notificationsOf(targetStudentId)).hasSize(1)
     }
 
     /**
