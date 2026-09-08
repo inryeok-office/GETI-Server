@@ -78,6 +78,7 @@ class DiscordChannelResolver(
             ?.takeIf { it.isNotBlank() }
 }
 
+@NamedInterface
 data class DiscordChannelOption(
     val channelKey: String,
     val channelId: String,
