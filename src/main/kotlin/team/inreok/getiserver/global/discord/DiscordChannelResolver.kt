@@ -21,6 +21,17 @@ import org.springframework.stereotype.Component
 class DiscordChannelResolver(
     private val properties: DiscordChannelProperties,
 ) {
+    /** 관리자 Filter 선택지에 사용할, 실제 ID와 표시 이름이 모두 설정된 채널 목록이다. */
+    fun availableChannels(): List<DiscordChannelOption> =
+        properties.channels
+            .mapNotNull { (channelKey, config) ->
+                if (config.channelId.isBlank() || config.displayName.isBlank()) {
+                    null
+                } else {
+                    DiscordChannelOption(channelKey, config.channelId, config.displayName)
+                }
+            }.sortedBy { it.channelKey }
+
     /** Job 등록·수정 요청이 지정한 채널 Key가 허용 목록에 있고 실제 채널이 설정됐는지다. */
     fun isAllowedJobChannelKey(key: String): Boolean = channelIdOf(key) != null
 
@@ -66,3 +77,10 @@ class DiscordChannelResolver(
             ?.let { properties.channels[it]?.channelId }
             ?.takeIf { it.isNotBlank() }
 }
+
+@NamedInterface
+data class DiscordChannelOption(
+    val channelKey: String,
+    val channelId: String,
+    val channelName: String,
+)
