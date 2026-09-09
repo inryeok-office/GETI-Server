@@ -14,6 +14,9 @@ import org.mockito.quality.Strictness
 import org.springframework.data.domain.Pageable
 import team.inreok.getiserver.domain.inquiry.query.InquiryDiscordPayloadQueryPort
 import team.inreok.getiserver.domain.job.query.JobDiscordPayloadQueryPort
+import team.inreok.getiserver.domain.job.query.JobDiscordPayloadSnapshot
+import team.inreok.getiserver.domain.job.query.JobNotificationTargetQueryPort
+import team.inreok.getiserver.domain.job.query.JobNotificationTargetSnapshot
 import team.inreok.getiserver.domain.notification.config.DiscordBotProperties
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryEnqueueCommand
 import team.inreok.getiserver.domain.notification.entity.DiscordDelivery
@@ -23,6 +26,8 @@ import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryAtt
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType
 import team.inreok.getiserver.domain.notification.entity.type.DiscordMessageTemplate
+import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryManualSendNotAllowedException
+import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryManualSendUnsupportedException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotFoundException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotFoundForTargetException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotRetryableException
@@ -35,6 +40,8 @@ import team.inreok.getiserver.domain.notification.service.DiscordPayloadFactory
 import team.inreok.getiserver.domain.notification.service.FakeDiscordBotClient
 import team.inreok.getiserver.domain.program.query.ProgramDiscordPayloadQueryPort
 import team.inreok.getiserver.domain.program.query.ProgramDiscordPayloadSnapshot
+import team.inreok.getiserver.domain.program.query.ProgramNotificationTargetQueryPort
+import team.inreok.getiserver.global.discord.DiscordChannelResolver
 import java.time.LocalDateTime
 import java.util.Optional
 
@@ -56,6 +63,15 @@ class DiscordDeliveryServiceImplTest {
     @Mock
     private lateinit var inquiryPayloadQueryPort: InquiryDiscordPayloadQueryPort
 
+    @Mock
+    private lateinit var jobNotificationTargetQueryPort: JobNotificationTargetQueryPort
+
+    @Mock
+    private lateinit var programNotificationTargetQueryPort: ProgramNotificationTargetQueryPort
+
+    @Mock
+    private lateinit var discordChannelResolver: DiscordChannelResolver
+
     private val botClient = FakeDiscordBotClient()
     private val properties =
         DiscordBotProperties(enabled = true, baseUrl = "http://bot:3000", internalApiKey = "key")
@@ -71,6 +87,9 @@ class DiscordDeliveryServiceImplTest {
             jobPayloadQueryPort = jobPayloadQueryPort,
             programPayloadQueryPort = programPayloadQueryPort,
             inquiryPayloadQueryPort = inquiryPayloadQueryPort,
+            jobNotificationTargetQueryPort = jobNotificationTargetQueryPort,
+            programNotificationTargetQueryPort = programNotificationTargetQueryPort,
+            discordChannelResolver = discordChannelResolver,
         )
 
     // --- enqueue ---------------------------------------------------------
@@ -322,6 +341,9 @@ class DiscordDeliveryServiceImplTest {
                 jobPayloadQueryPort = jobPayloadQueryPort,
                 programPayloadQueryPort = programPayloadQueryPort,
                 inquiryPayloadQueryPort = inquiryPayloadQueryPort,
+                jobNotificationTargetQueryPort = jobNotificationTargetQueryPort,
+                programNotificationTargetQueryPort = programNotificationTargetQueryPort,
+                discordChannelResolver = discordChannelResolver,
             )
 
         assertThat(disabled.processDueDeliveries()).isZero()
@@ -539,13 +561,14 @@ class DiscordDeliveryServiceImplTest {
         messageId: String? = null,
         automaticRetryCount: Int = 0,
         manualRetryCount: Int = 0,
+        targetId: Long = 100L,
     ) = DiscordDelivery(
         targetType = template.targetType,
-        targetId = 100L,
+        targetId = targetId,
         action = template.action,
         template = template,
         channelId = "channel-1",
-        idempotencyKey = "PROGRAM:100:${template.action}",
+        idempotencyKey = "${template.targetType}:$targetId:${template.action}",
     ).apply {
         this.id = id
         this.status = status
@@ -600,6 +623,51 @@ class DiscordDeliveryServiceImplTest {
             .verify(attemptRepository)
             .save(captor.capture())
         return captor.value
+    }
+
+    @Test
+    fun `Inquiry manual send is rejected`() {
+        assertThatThrownBy { service().sendManually(DiscordDeliveryTargetType.INQUIRY, 1L) }
+            .isInstanceOf(DiscordDeliveryManualSendUnsupportedException::class.java)
+    }
+
+    @Test
+    fun `existing delivery blocks manual send`() {
+        given(deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(DiscordDeliveryTargetType.JOB, 1L))
+            .willReturn(delivery(id = 1L, targetId = 1L))
+
+        assertThatThrownBy { service().sendManually(DiscordDeliveryTargetType.JOB, 1L) }
+            .isInstanceOf(DiscordDeliveryManualSendNotAllowedException::class.java)
+    }
+
+    @Test
+    fun `published job without delivery enqueues existing create pipeline`() {
+        val snapshot =
+            JobDiscordPayloadSnapshot(
+                jobId = 1L,
+                title = "title",
+                companyId = 1L,
+                companyName = "company",
+                recruitmentEndedAt = null,
+                discordChannelKey = "jobs",
+                targetGrade = 3,
+                updatedAt = LocalDateTime.of(2026, 1, 1, 0, 0),
+            )
+        val saved = delivery(id = 2L, targetId = 1L)
+        given(deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(DiscordDeliveryTargetType.JOB, 1L))
+            .willReturn(null, saved)
+        given(jobNotificationTargetQueryPort.findAllByIds(setOf(1L)))
+            .willReturn(mapOf(1L to JobNotificationTargetSnapshot(1L, "PUBLISHED", false)))
+        given(jobPayloadQueryPort.findById(1L)).willReturn(snapshot)
+        given(discordChannelResolver.resolveJobChannelId("jobs")).willReturn("channel-1")
+        given(discordChannelResolver.roleIdsForGrades(listOf(3))).willReturn(listOf("role-1"))
+        given(deliveryRepository.findByIdempotencyKey(anyKey())).willReturn(null)
+        given(deliveryRepository.saveAndFlush(anyDelivery())).willAnswer { it.arguments[0].withId(2L) }
+
+        val response = service().sendManually(DiscordDeliveryTargetType.JOB, 1L)
+
+        assertThat(response.status).isEqualTo(DiscordDeliveryStatus.PENDING)
+        assertThat(response.targetId).isEqualTo(1L)
     }
 
     private fun Any?.withId(id: Long): DiscordDelivery = (this as DiscordDelivery).apply { this.id = id }

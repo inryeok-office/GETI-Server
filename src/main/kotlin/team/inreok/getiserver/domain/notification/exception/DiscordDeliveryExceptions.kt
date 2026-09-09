@@ -47,3 +47,19 @@ class DiscordDeliveryRetryLimitExceededException(
         DiscordDeliveryErrorCode.DISCORD_DELIVERY_RETRY_LIMIT_EXCEEDED,
         "수동 재시도 가능 횟수를 모두 사용했습니다. (deliveryId=$deliveryId, manualRetryCount=$manualRetryCount)",
     )
+
+class DiscordDeliveryManualSendNotAllowedException(
+    targetType: DiscordDeliveryTargetType,
+    targetId: Long,
+    status: String,
+) : BusinessException(
+        DiscordDeliveryErrorCode.DISCORD_DELIVERY_MANUAL_SEND_NOT_ALLOWED,
+        "현재 대상 상태에서는 Discord 수동 발송을 요청할 수 없습니다. (targetType=$targetType, targetId=$targetId, status=$status)",
+    )
+
+class DiscordDeliveryManualSendUnsupportedException(
+    targetType: DiscordDeliveryTargetType,
+) : BusinessException(
+        DiscordDeliveryErrorCode.DISCORD_DELIVERY_MANUAL_SEND_UNSUPPORTED,
+        "해당 대상 유형은 Discord 수동 발송을 지원하지 않습니다. (targetType=$targetType)",
+    )
