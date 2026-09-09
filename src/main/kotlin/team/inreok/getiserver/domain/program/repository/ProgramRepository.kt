@@ -15,6 +15,11 @@ import team.inreok.getiserver.domain.program.entity.type.ProgramType
 import java.time.LocalDateTime
 
 interface ProgramRepository : JpaRepository<Program, Long> {
+    @Query("SELECT p.id FROM Program p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%'))")
+    fun findIdsByTitleContaining(
+        @Param("query") query: String,
+    ): List<Long>
+
     // 삭제된 Program(deletedAt != null)은 조회 대상이 아니다(Soft Delete). 관리자 상세 조회는
     // 삭제 이력까지 확인해야 하므로 findById를 그대로 쓴다(JobRepository와 동일한 관례).
     fun findByIdAndDeletedAtIsNull(id: Long): Program?

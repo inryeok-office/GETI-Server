@@ -12,6 +12,11 @@ import team.inreok.getiserver.domain.inquiry.entity.type.InquiryStatus
 import team.inreok.getiserver.domain.inquiry.entity.type.InquiryType
 
 interface InquiryRepository : JpaRepository<Inquiry, Long> {
+    @Query("SELECT i.id FROM Inquiry i WHERE i.type IN :types")
+    fun findIdsByTypeIn(
+        @Param("types") types: Collection<InquiryType>,
+    ): List<Long>
+
     /**
      * 답변 등록(POST .../answers)과 상태 변경(PATCH .../status)이 같은 Inquiry Row를 동시에
      * CLOSED 전환/답변 등록하려는 경합을 막기 위해 Pessimistic Write Lock으로 조회한다(§CLOSED-답변

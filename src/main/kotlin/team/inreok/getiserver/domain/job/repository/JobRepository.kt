@@ -13,6 +13,11 @@ import java.time.LocalDateTime
 
 @Suppress("TooManyFunctions")
 interface JobRepository : JpaRepository<Job, Long> {
+    @Query("SELECT j.id FROM Job j WHERE LOWER(j.title) LIKE LOWER(CONCAT('%', :query, '%'))")
+    fun findIdsByTitleContaining(
+        @Param("query") query: String,
+    ): List<Long>
+
     fun findBySourceNameAndExternalJobId(
         sourceName: String,
         externalJobId: String,

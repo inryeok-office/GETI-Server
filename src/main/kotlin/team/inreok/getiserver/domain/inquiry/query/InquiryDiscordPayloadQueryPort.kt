@@ -40,6 +40,8 @@ interface InquiryDiscordPayloadQueryPort {
      * 관리자는 유형과 `targetId`로 대상을 식별할 수 있다.
      */
     fun findDisplayNamesByIds(inquiryIds: Set<Long>): Map<Long, String>
+
+    fun findIdsByDisplayNameContaining(query: String): Set<Long>
 }
 
 @NamedInterface
