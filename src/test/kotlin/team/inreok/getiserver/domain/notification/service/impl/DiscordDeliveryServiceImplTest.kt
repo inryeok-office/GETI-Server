@@ -633,7 +633,7 @@ class DiscordDeliveryServiceImplTest {
 
     @Test
     fun `existing delivery blocks manual send`() {
-        given(deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(DiscordDeliveryTargetType.JOB, 1L))
+        given(deliveryRepository.findByIdempotencyKey(anyKey()))
             .willReturn(delivery(id = 1L, targetId = 1L))
 
         assertThatThrownBy { service().sendManually(DiscordDeliveryTargetType.JOB, 1L) }
@@ -655,7 +655,7 @@ class DiscordDeliveryServiceImplTest {
             )
         val saved = delivery(id = 2L, targetId = 1L)
         given(deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(DiscordDeliveryTargetType.JOB, 1L))
-            .willReturn(null, saved)
+            .willReturn(saved)
         given(jobNotificationTargetQueryPort.findAllByIds(setOf(1L)))
             .willReturn(mapOf(1L to JobNotificationTargetSnapshot(1L, "PUBLISHED", false)))
         given(jobPayloadQueryPort.findById(1L)).willReturn(snapshot)

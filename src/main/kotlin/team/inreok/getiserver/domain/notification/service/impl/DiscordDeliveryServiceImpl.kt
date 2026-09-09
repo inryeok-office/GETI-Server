@@ -206,7 +206,14 @@ class DiscordDeliveryServiceImpl(
             throw DiscordDeliveryManualSendUnsupportedException(targetType)
         }
 
-        if (deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(targetType, targetId) != null) {
+        val createIdempotencyKey =
+            DiscordIdempotencyKeys.of(
+                targetType = targetType,
+                targetId = targetId,
+                action = DiscordDeliveryAction.CREATE,
+                sourceUpdatedAt = null,
+            )
+        if (deliveryRepository.findByIdempotencyKey(createIdempotencyKey) != null) {
             throw DiscordDeliveryManualSendNotAllowedException(targetType, targetId, "DELIVERY_EXISTS")
         }
 
