@@ -83,7 +83,7 @@ After fixing, output a structured report:
 
 ## Rules for Judgment Calls
 
-- If a rule conflict exists between documents: CLAUDE.md wins
+- If a rule conflict exists between documents, apply the authority order declared above: `AGENTS.md` > `docs/architecture/**` > `CLAUDE.md` and `.claude/rules/**` > `docs/ai/**` and `docs/development/**` > `CONTRIBUTING.md`
 - If a fix would change business logic (not just style): report it under "Requires Manual Review" instead of auto-fixing
 - If a file has no violations: still list it briefly under "No Violations"
 - Do NOT commit changes — leave that to the developer

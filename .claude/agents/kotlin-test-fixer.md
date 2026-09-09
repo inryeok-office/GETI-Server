@@ -72,8 +72,8 @@ Use the following decision table:
 ### 2d. Apply Fixes
 
 For **test fixes** (most common):
-- Update `every { ... }` mock stubs to match current service method signatures
-- Update `verify { ... }` calls if method names changed
+- Update `Mockito.when(...).thenReturn(...)` / `given(...).willReturn(...)` stubs to match current service method signatures
+- Update `Mockito.verify(...)` calls if method names changed
 - Update assertion values to match new expected behavior
 - Update `shouldThrow<>` blocks if exception type or message changed
 
