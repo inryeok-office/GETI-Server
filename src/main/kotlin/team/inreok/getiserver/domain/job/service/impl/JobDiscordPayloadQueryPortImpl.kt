@@ -43,4 +43,8 @@ class JobDiscordPayloadQueryPortImpl(
             .findAllById(jobIds)
             .associate { requireNotNull(it.id) { "저장된 Job은 id를 가져야 합니다." } to it.title }
     }
+
+    @Transactional(readOnly = true)
+    override fun findIdsByTitleContaining(query: String): Set<Long> =
+        jobRepository.findIdsByTitleContaining(query).toSet()
 }

@@ -30,6 +30,8 @@ interface ProgramDiscordPayloadQueryPort {
      * 목록에서 Snapshot을 그대로 100건 실어 오지 않으려고 String만 돌려준다.
      */
     fun findDisplayNamesByIds(programIds: Set<Long>): Map<Long, String>
+
+    fun findIdsByTitleContaining(query: String): Set<Long>
 }
 
 /**
