@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anySet
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.BDDMockito.given
@@ -218,7 +219,18 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         service().listRecent(DiscordDeliveryStatus.FAILED, PageRequest.of(0, 20))
 
         val statusCaptor = ArgumentCaptor.forClass(DiscordDeliveryStatus::class.java)
-        verify(deliveryRepository).findRecent(statusCaptor.capture(), any(), any(), anyPageable(), any(), any())
+        verify(deliveryRepository).findRecent(
+            statusCaptor.capture(),
+            any(),
+            any(),
+            anyPageable(),
+            any(),
+            any(),
+            anyBoolean(),
+            anyIdSet(),
+            anyIdSet(),
+            anyIdSet(),
+        )
         assertThat(statusCaptor.value).isEqualTo(DiscordDeliveryStatus.FAILED)
     }
 
@@ -232,7 +244,18 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         val pageableCaptor = ArgumentCaptor.forClass(Pageable::class.java)
         verify(
             deliveryRepository,
-        ).findRecent(any(), any(), any(), pageableCaptor.capture() ?: Pageable.unpaged(), any(), any())
+        ).findRecent(
+            any(),
+            any(),
+            any(),
+            pageableCaptor.capture() ?: Pageable.unpaged(),
+            any(),
+            any(),
+            anyBoolean(),
+            anyIdSet(),
+            anyIdSet(),
+            anyIdSet(),
+        )
         assertThat(pageableCaptor.value.sort.isSorted).isFalse()
         assertThat(pageableCaptor.value.pageNumber).isEqualTo(1)
         assertThat(pageableCaptor.value.pageSize).isEqualTo(50)
@@ -258,7 +281,18 @@ class DiscordDeliveryAdminQueryServiceImplTest {
 
         verify(
             deliveryRepository,
-        ).findRecent(eq(DiscordDeliveryStatus.FAILED), eq(startAt), eq(endAt), anyPageable(), any(), any())
+        ).findRecent(
+            eq(DiscordDeliveryStatus.FAILED),
+            eq(startAt),
+            eq(endAt),
+            anyPageable(),
+            any(),
+            any(),
+            anyBoolean(),
+            anyIdSet(),
+            anyIdSet(),
+            anyIdSet(),
+        )
     }
 
     // ---------- Fixture ----------
@@ -276,8 +310,20 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         deliveries: List<DiscordDelivery>,
         latestIds: List<Long> = deliveries.mapNotNull { it.id },
     ) {
-        given(deliveryRepository.findRecent(any(), any(), any(), anyPageable(), any(), any()))
-            .willReturn(PageImpl(deliveries, PageRequest.of(0, 20), deliveries.size.toLong()))
+        given(
+            deliveryRepository.findRecent(
+                any(),
+                any(),
+                any(),
+                anyPageable(),
+                any(),
+                any(),
+                anyBoolean(),
+                anyIdSet(),
+                anyIdSet(),
+                anyIdSet(),
+            ),
+        ).willReturn(PageImpl(deliveries, PageRequest.of(0, 20), deliveries.size.toLong()))
         given(deliveryRepository.findLatestDeliveryIds(anyTargetTypeSet(), anyIdSet())).willReturn(latestIds)
     }
 

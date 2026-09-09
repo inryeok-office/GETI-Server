@@ -119,6 +119,9 @@ class DiscordDeliveryAdminController(
         @Parameter(description = "Discord 채널 Snowflake Filter(선택)", example = "1234567890123456789")
         @RequestParam(required = false)
         channelId: String?,
+        @Parameter(description = "대상 이름 부분 일치 Filter(선택). JOB/PROGRAM은 제목, INQUIRY는 문의 유형을 검색하며 앞뒤 공백은 제거한다.")
+        @RequestParam(required = false)
+        targetName: String?,
         @Parameter(description = "Pagination(page: 0부터 시작, size: 기본 20, 최대 100). sort는 무시된다.")
         pageable: Pageable,
     ): ApiResponse<DiscordDeliveryListResponse> =
@@ -130,6 +133,7 @@ class DiscordDeliveryAdminController(
                 endAt,
                 targetType,
                 channelId,
+                targetName,
             ),
         )
 

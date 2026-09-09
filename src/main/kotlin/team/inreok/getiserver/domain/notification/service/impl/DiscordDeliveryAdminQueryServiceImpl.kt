@@ -32,6 +32,7 @@ import java.time.LocalDateTime
  * 같은 방식).
  */
 @Service
+@Suppress("TooManyFunctions")
 class DiscordDeliveryAdminQueryServiceImpl(
     private val deliveryRepository: DiscordDeliveryRepository,
     private val jobPayloadQueryPort: JobDiscordPayloadQueryPort,
@@ -44,14 +45,14 @@ class DiscordDeliveryAdminQueryServiceImpl(
     fun listRecent(
         status: DiscordDeliveryStatus?,
         pageable: Pageable,
-    ) = listRecent(status, pageable, null, null, null, null)
+    ) = listRecent(status, pageable, null, null, null, null, null)
 
     fun listRecent(
         status: DiscordDeliveryStatus?,
         pageable: Pageable,
         startAt: LocalDateTime?,
         endAt: LocalDateTime?,
-    ) = listRecent(status, pageable, startAt, endAt, null, null)
+    ) = listRecent(status, pageable, startAt, endAt, null, null, null)
 
     @Transactional(readOnly = true)
     override fun findById(deliveryId: Long): DiscordDeliveryListItemResponse {
@@ -72,7 +73,10 @@ class DiscordDeliveryAdminQueryServiceImpl(
         endAt: LocalDateTime?,
         targetType: DiscordDeliveryTargetType?,
         channelId: String?,
+        targetName: String?,
     ): DiscordDeliveryListResponse {
+        val normalizedTargetName = targetName?.trim()?.takeIf { it.isNotEmpty() }
+        val targetIds = normalizedTargetName?.let { findTargetIds(it, targetType) }
         // 정렬은 Repository Query가 id DESC로 고정한다. 클라이언트가 보낸 Sort를 그대로 넘기면
         // JPQL의 ORDER BY와 충돌하므로 Page 정보만 남긴다(NotificationServiceImpl.list와 동일).
         val page =
@@ -83,6 +87,10 @@ class DiscordDeliveryAdminQueryServiceImpl(
                 PageRequest.of(pageable.pageNumber, pageable.pageSize),
                 targetType,
                 channelId,
+                normalizedTargetName != null,
+                targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
+                targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
+                targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
             )
         if (page.isEmpty) return page.toListResponse(emptyMap(), emptySet())
 
@@ -90,6 +98,27 @@ class DiscordDeliveryAdminQueryServiceImpl(
         val latestDeliveryIds = loadLatestDeliveryIds(page.content)
         return page.toListResponse(targetNames, latestDeliveryIds)
     }
+
+    private fun findTargetIds(
+        targetName: String,
+        targetType: DiscordDeliveryTargetType?,
+    ): Map<DiscordDeliveryTargetType, Set<Long>> =
+        buildMap {
+            if (targetType == null || targetType == DiscordDeliveryTargetType.JOB) {
+                put(DiscordDeliveryTargetType.JOB, jobPayloadQueryPort.findIdsByTitleContaining(targetName))
+            }
+            if (targetType == null || targetType == DiscordDeliveryTargetType.PROGRAM) {
+                put(DiscordDeliveryTargetType.PROGRAM, programPayloadQueryPort.findIdsByTitleContaining(targetName))
+            }
+            if (targetType == null || targetType == DiscordDeliveryTargetType.INQUIRY) {
+                put(
+                    DiscordDeliveryTargetType.INQUIRY,
+                    inquiryPayloadQueryPort.findIdsByDisplayNameContaining(targetName),
+                )
+            }
+        }
+
+    private fun Set<Long>?.orPlaceholder(): Set<Long> = this ?: setOf(-1)
 
     /**
      * Page에 실린 대상들의 표시 이름을 대상 Domain별로 한 번씩만 읽는다. 해당 종류의 대상이 하나도

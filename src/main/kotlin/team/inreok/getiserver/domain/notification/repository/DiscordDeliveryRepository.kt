@@ -46,6 +46,15 @@ interface DiscordDeliveryRepository : JpaRepository<DiscordDelivery, Long> {
           )
           AND (:targetType IS NULL OR d.targetType = :targetType)
           AND (:channelId IS NULL OR d.channelId = :channelId)
+          AND (
+            :hasTargetName = FALSE
+            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.JOB
+                AND d.targetId IN :jobTargetIds)
+            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.PROGRAM
+                AND d.targetId IN :programTargetIds)
+            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.INQUIRY
+                AND d.targetId IN :inquiryTargetIds)
+          )
         ORDER BY d.id DESC
         """,
     )
@@ -56,6 +65,10 @@ interface DiscordDeliveryRepository : JpaRepository<DiscordDelivery, Long> {
         pageable: Pageable,
         @Param("targetType") targetType: DiscordDeliveryTargetType? = null,
         @Param("channelId") channelId: String? = null,
+        @Param("hasTargetName") hasTargetName: Boolean = false,
+        @Param("jobTargetIds") jobTargetIds: Collection<Long> = setOf(-1),
+        @Param("programTargetIds") programTargetIds: Collection<Long> = setOf(-1),
+        @Param("inquiryTargetIds") inquiryTargetIds: Collection<Long> = setOf(-1),
     ): Page<DiscordDelivery>
 
     /**
