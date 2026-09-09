@@ -30,5 +30,6 @@ interface DiscordDeliveryAdminQueryService {
         endAt: LocalDateTime? = null,
         targetType: DiscordDeliveryTargetType? = null,
         channelId: String? = null,
+        targetName: String? = null,
     ): DiscordDeliveryListResponse
 }

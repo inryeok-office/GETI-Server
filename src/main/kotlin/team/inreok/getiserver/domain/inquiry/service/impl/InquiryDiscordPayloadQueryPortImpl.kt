@@ -45,4 +45,13 @@ class InquiryDiscordPayloadQueryPortImpl(
             .findAllById(inquiryIds)
             .associate { requireNotNull(it.id) { "저장된 Inquiry는 id를 가져야 합니다." } to it.type.name }
     }
+
+    @Transactional(readOnly = true)
+    override fun findIdsByDisplayNameContaining(query: String): Set<Long> {
+        val types =
+            team.inreok.getiserver.domain.inquiry.entity.type.InquiryType.entries
+                .filter { it.name.contains(query, ignoreCase = true) }
+        if (types.isEmpty()) return emptySet()
+        return inquiryRepository.findIdsByTypeIn(types).toSet()
+    }
 }

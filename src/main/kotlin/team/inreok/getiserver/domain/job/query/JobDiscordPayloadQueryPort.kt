@@ -41,6 +41,8 @@ interface JobDiscordPayloadQueryPort {
      * 목록 API가 한 번에 최대 100건을 반환하므로 단건이 아닌 배치 조회로 둔다(N+1 방지).
      */
     fun findDisplayNamesByIds(jobIds: Set<Long>): Map<Long, String>
+
+    fun findIdsByTitleContaining(query: String): Set<Long>
 }
 
 /**
