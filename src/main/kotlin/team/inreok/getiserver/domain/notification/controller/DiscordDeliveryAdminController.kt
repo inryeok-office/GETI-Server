@@ -169,9 +169,9 @@ class DiscordDeliveryAdminController(
         """,
     )
     @ApiResponses(
-        SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue ?깃났"),
-        SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 沅뚰븳???놁쓬"),
-        SwaggerApiResponse(responseCode = "404", description = "怨듦퀬???녾쓬"),
+        SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue 성공"),
+        SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 권한이 없음"),
+        SwaggerApiResponse(responseCode = "404", description = "공고가 없음"),
         SwaggerApiResponse(responseCode = "409", description = "PUBLISHED가 아니거나 기존 CREATE Delivery가 있음"),
     )
     @PostMapping(
@@ -249,9 +249,9 @@ class DiscordDeliveryAdminController(
         """,
     )
     @ApiResponses(
-        SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue ?깃났"),
-        SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 沅뚰븳???놁쓬"),
-        SwaggerApiResponse(responseCode = "404", description = "?꾨줈洹몃옩???녾쓬"),
+        SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue 성공"),
+        SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 권한이 없음"),
+        SwaggerApiResponse(responseCode = "404", description = "프로그램이 없음"),
         SwaggerApiResponse(responseCode = "409", description = "PUBLISHED가 아니거나 기존 CREATE Delivery가 있음"),
     )
     @PostMapping(
