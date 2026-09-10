@@ -665,9 +665,55 @@ class DiscordDeliveryServiceImplTest {
         given(deliveryRepository.saveAndFlush(anyDelivery())).willAnswer { it.arguments[0].withId(2L) }
 
         val response = service().sendManually(DiscordDeliveryTargetType.JOB, 1L)
+        val captured = captureSaved()
 
         assertThat(response.status).isEqualTo(DiscordDeliveryStatus.PENDING)
         assertThat(response.targetId).isEqualTo(1L)
+        assertThat(captured.template).isEqualTo(DiscordMessageTemplate.JOB_PUBLISHED)
+        assertThat(captured.channelId).isEqualTo("channel-1")
+        assertThat(captured.roleIdList()).containsExactly("role-1")
+    }
+
+    @Test
+    fun `published program without delivery enqueues the expected payload`() {
+        val snapshot =
+            ProgramDiscordPayloadSnapshot(
+                programId = 1L,
+                title = "program",
+                bodyMarkdown = null,
+                eventStartedAt = null,
+                eventEndedAt = null,
+                discordChannelId = "program-channel",
+                targetGrades = listOf(2, 3),
+                updatedAt = LocalDateTime.of(2026, 1, 1, 0, 0),
+            )
+        val saved = delivery(id = 3L, targetId = 1L)
+        given(deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(DiscordDeliveryTargetType.PROGRAM, 1L))
+            .willReturn(saved)
+        given(programNotificationTargetQueryPort.findAllByIds(setOf(1L)))
+            .willReturn(
+                mapOf(
+                    1L to
+                        team.inreok.getiserver.domain.program.query.ProgramNotificationTargetSnapshot(
+                            1L,
+                            "PUBLISHED",
+                            false,
+                        ),
+                ),
+            )
+        given(programPayloadQueryPort.findById(1L)).willReturn(snapshot)
+        given(discordChannelResolver.resolveProgramChannelId("program-channel")).willReturn("channel-2")
+        given(discordChannelResolver.roleIdsForGrades(listOf(2, 3))).willReturn(listOf("role-2", "role-3"))
+        given(deliveryRepository.findByIdempotencyKey(anyKey())).willReturn(null)
+        given(deliveryRepository.saveAndFlush(anyDelivery())).willAnswer { it.arguments[0].withId(3L) }
+
+        val response = service().sendManually(DiscordDeliveryTargetType.PROGRAM, 1L)
+        val captured = captureSaved()
+
+        assertThat(response.status).isEqualTo(DiscordDeliveryStatus.PENDING)
+        assertThat(captured.template).isEqualTo(DiscordMessageTemplate.PROGRAM_PUBLISHED)
+        assertThat(captured.channelId).isEqualTo("channel-2")
+        assertThat(captured.roleIdList()).containsExactly("role-2", "role-3")
     }
 
     private fun Any?.withId(id: Long): DiscordDelivery = (this as DiscordDelivery).apply { this.id = id }

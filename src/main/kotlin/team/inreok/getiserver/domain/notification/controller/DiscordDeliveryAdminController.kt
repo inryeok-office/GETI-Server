@@ -1,5 +1,3 @@
-@file:Suppress("ktlint:standard:max-line-length")
-
 package team.inreok.getiserver.domain.notification.controller
 
 import io.swagger.v3.oas.annotations.Operation
@@ -54,7 +52,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse
 )
 @SecurityRequirement(name = BEARER_AUTH_SCHEME)
 @RestController
-@Suppress("MaxLineLength")
 class DiscordDeliveryAdminController(
     private val discordDeliveryService: DiscordDeliveryService,
     private val discordDeliveryAdminQueryService: DiscordDeliveryAdminQueryService,
@@ -165,21 +162,23 @@ class DiscordDeliveryAdminController(
         ApiResponse.of(discordDeliveryService.findStatus(DiscordDeliveryTargetType.JOB, jobId))
 
     @Operation(
-        summary = "怨듦퀬 Discord ?섎룞 諛쒖넚 ?붿껌",
-        description = "PUBLISHED 怨듦퀬??理쒖큹 Discord CREATE Delivery媛 ?놁쓣 ???꾩옱 ??곗씠?곕줈 Delivery瑜?enqueue?쒕떎. FAILED Delivery???ъ떆 API瑜??ъ슜?쒕떎.",
+        summary = "공고 Discord 전달 수동 발송 요청",
+        description = """
+            PUBLISHED 공고에 최초 Discord CREATE Delivery가 없을 때 현재 데이터로 Delivery를 enqueue한다.
+            FAILED Delivery는 재시도 API를 사용한다.
+        """,
     )
     @ApiResponses(
         SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue ?깃났"),
-        SwaggerApiResponse(responseCode = "400", description = "吏?먰븯吏 ?딆뒗 ????좏삎"),
         SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 沅뚰븳???놁쓬"),
         SwaggerApiResponse(responseCode = "404", description = "怨듦퀬???녾쓬"),
-        SwaggerApiResponse(responseCode = "409", description = "PUBLISHED媛 ?딄굅??湲곗〈 Delivery媛 ?덉쓬"),
+        SwaggerApiResponse(responseCode = "409", description = "PUBLISHED가 아니거나 기존 CREATE Delivery가 있음"),
     )
     @PostMapping(
         "/api/v1/admin/jobs/{jobId}/discord/send",
     )
     fun sendJobDiscord(
-        @Parameter(description = "?섎룞 諛쒖넚???怨듦퀬 ID", example = "1") @PathVariable jobId: Long,
+        @Parameter(description = "수동 발송할 공고 ID", example = "1") @PathVariable jobId: Long,
     ): ApiResponse<DiscordDeliveryStatusResponse> =
         ApiResponse.of(discordDeliveryService.sendManually(DiscordDeliveryTargetType.JOB, jobId))
 
@@ -243,21 +242,23 @@ class DiscordDeliveryAdminController(
     }
 
     @Operation(
-        summary = "?꾨줈洹몃옩 Discord ?섎룞 諛쒖넚 ?붿껌",
-        description = "PUBLISHED ?꾨줈洹몃옩??理쒖큹 Discord CREATE Delivery媛 ?놁쓣 ???꾩옱 ??곗씠?곕줈 Delivery瑜?enqueue?쒕떎. FAILED Delivery???ъ떆 API瑜??ъ슜?쒕떎.",
+        summary = "프로그램 Discord 전달 수동 발송 요청",
+        description = """
+            PUBLISHED 프로그램에 최초 Discord CREATE Delivery가 없을 때 현재 데이터로 Delivery를 enqueue한다.
+            FAILED Delivery는 재시도 API를 사용한다.
+        """,
     )
     @ApiResponses(
         SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue ?깃났"),
-        SwaggerApiResponse(responseCode = "400", description = "吏?먰븯吏 ?딆뒗 ????좏삎"),
         SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 沅뚰븳???놁쓬"),
         SwaggerApiResponse(responseCode = "404", description = "?꾨줈洹몃옩???녾쓬"),
-        SwaggerApiResponse(responseCode = "409", description = "PUBLISHED媛 ?딄굅??湲곗〈 Delivery媛 ?덉쓬"),
+        SwaggerApiResponse(responseCode = "409", description = "PUBLISHED가 아니거나 기존 CREATE Delivery가 있음"),
     )
     @PostMapping(
         "/api/v1/admin/programs/{programId}/discord/send",
     )
     fun sendProgramDiscord(
-        @Parameter(description = "?섎룞 諛쒖넚???꾨줈洹몃옩 ID", example = "1") @PathVariable programId: Long,
+        @Parameter(description = "수동 발송할 프로그램 ID", example = "1") @PathVariable programId: Long,
     ): ApiResponse<DiscordDeliveryStatusResponse> =
         ApiResponse.of(discordDeliveryService.sendManually(DiscordDeliveryTargetType.PROGRAM, programId))
 

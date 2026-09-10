@@ -307,6 +307,54 @@ class DiscordDeliveryAdminControllerTest
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
         }
 
+        @Test
+        fun `developer can manually send a job Discord delivery`() {
+            given(discordDeliveryService.sendManually(DiscordDeliveryTargetType.JOB, 1L))
+                .willReturn(statusResponse(DiscordDeliveryTargetType.JOB))
+
+            mockMvc
+                .perform(post("/api/v1/admin/jobs/1/discord/send").with(authOf(1L, "DEVELOPER")))
+                .andExpect(status().isOk)
+        }
+
+        @Test
+        fun `teacher cannot manually send a job Discord delivery`() {
+            mockMvc
+                .perform(post("/api/v1/admin/jobs/1/discord/send").with(authOf(1L, "TEACHER")))
+                .andExpect(status().isForbidden)
+        }
+
+        @Test
+        fun `unauthenticated job manual send returns 401`() {
+            mockMvc
+                .perform(post("/api/v1/admin/jobs/1/discord/send"))
+                .andExpect(status().isUnauthorized)
+        }
+
+        @Test
+        fun `developer can manually send a program Discord delivery`() {
+            given(discordDeliveryService.sendManually(DiscordDeliveryTargetType.PROGRAM, 1L))
+                .willReturn(statusResponse(DiscordDeliveryTargetType.PROGRAM))
+
+            mockMvc
+                .perform(post("/api/v1/admin/programs/1/discord/send").with(authOf(1L, "DEVELOPER")))
+                .andExpect(status().isOk)
+        }
+
+        @Test
+        fun `teacher cannot manually send a program Discord delivery`() {
+            mockMvc
+                .perform(post("/api/v1/admin/programs/1/discord/send").with(authOf(1L, "TEACHER")))
+                .andExpect(status().isForbidden)
+        }
+
+        @Test
+        fun `unauthenticated program manual send returns 401`() {
+            mockMvc
+                .perform(post("/api/v1/admin/programs/1/discord/send"))
+                .andExpect(status().isUnauthorized)
+        }
+
         // --- Program: 등록자·담당 교사·개발자만 -----------------------------------
 
         @Test
