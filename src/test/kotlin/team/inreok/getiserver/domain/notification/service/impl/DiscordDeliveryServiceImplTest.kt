@@ -11,6 +11,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
 import team.inreok.getiserver.domain.inquiry.query.InquiryDiscordPayloadQueryPort
 import team.inreok.getiserver.domain.job.query.JobDiscordPayloadQueryPort
@@ -635,6 +636,33 @@ class DiscordDeliveryServiceImplTest {
     fun `existing delivery blocks manual send`() {
         given(deliveryRepository.findByIdempotencyKey(anyKey()))
             .willReturn(delivery(id = 1L, targetId = 1L))
+
+        assertThatThrownBy { service().sendManually(DiscordDeliveryTargetType.JOB, 1L) }
+            .isInstanceOf(DiscordDeliveryManualSendNotAllowedException::class.java)
+    }
+
+    @Test
+    fun `concurrent delivery insert also blocks manual send`() {
+        val snapshot =
+            JobDiscordPayloadSnapshot(
+                jobId = 1L,
+                title = "title",
+                companyId = 1L,
+                companyName = "company",
+                recruitmentEndedAt = null,
+                discordChannelKey = "jobs",
+                targetGrade = 3,
+                updatedAt = LocalDateTime.of(2026, 1, 1, 0, 0),
+            )
+        val existing = delivery(id = 1L, targetId = 1L)
+        given(deliveryRepository.findByIdempotencyKey(anyKey())).willReturn(null, existing)
+        given(jobNotificationTargetQueryPort.findAllByIds(setOf(1L)))
+            .willReturn(mapOf(1L to JobNotificationTargetSnapshot(1L, "PUBLISHED", false)))
+        given(jobPayloadQueryPort.findById(1L)).willReturn(snapshot)
+        given(discordChannelResolver.resolveJobChannelId("jobs")).willReturn("channel-1")
+        given(discordChannelResolver.roleIdsForGrades(listOf(3))).willReturn(listOf("role-1"))
+        given(deliveryRepository.saveAndFlush(anyDelivery()))
+            .willThrow(DataIntegrityViolationException("uk_discord_deliveries_idempotency_key"))
 
         assertThatThrownBy { service().sendManually(DiscordDeliveryTargetType.JOB, 1L) }
             .isInstanceOf(DiscordDeliveryManualSendNotAllowedException::class.java)

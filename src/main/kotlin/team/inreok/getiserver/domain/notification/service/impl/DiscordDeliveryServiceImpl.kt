@@ -83,7 +83,13 @@ class DiscordDeliveryServiceImpl(
     private val log = LoggerFactory.getLogger(DiscordDeliveryServiceImpl::class.java)
 
     @Transactional
-    override fun enqueue(command: DiscordDeliveryEnqueueCommand): Long {
+    override fun enqueue(command: DiscordDeliveryEnqueueCommand): Long =
+        enqueueInternal(command, rejectExisting = false)
+
+    private fun enqueueInternal(
+        command: DiscordDeliveryEnqueueCommand,
+        rejectExisting: Boolean,
+    ): Long {
         val template = command.template
         val idempotencyKey =
             DiscordIdempotencyKeys.of(
@@ -94,6 +100,12 @@ class DiscordDeliveryServiceImpl(
             )
 
         deliveryRepository.findByIdempotencyKey(idempotencyKey)?.let { existing ->
+            if (rejectExisting) {
+                throwManualSendNotAllowed(
+                    template.targetType,
+                    command.targetId,
+                )
+            }
             log.debug("이미 예약된 Discord 전달이라 재생성하지 않습니다: idempotencyKey={}", idempotencyKey)
             return requireNotNull(existing.id)
         }
@@ -127,6 +139,12 @@ class DiscordDeliveryServiceImpl(
             val existing =
                 deliveryRepository.findByIdempotencyKey(idempotencyKey)
                     ?: throw ex
+            if (rejectExisting) {
+                throwManualSendNotAllowed(
+                    template.targetType,
+                    command.targetId,
+                )
+            }
             log.debug("동시 생성으로 UNIQUE 제약에 걸려 기존 Delivery를 재사용합니다: idempotencyKey={}", idempotencyKey)
             requireNotNull(existing.id)
         }
@@ -285,7 +303,7 @@ class DiscordDeliveryServiceImpl(
                 }
             }
 
-        enqueue(command)
+        enqueueInternal(command, rejectExisting = true)
         return findStatus(targetType, targetId)
     }
 
@@ -537,6 +555,11 @@ class DiscordDeliveryServiceImpl(
         return constraintName?.equals(IDEMPOTENCY_KEY_CONSTRAINT, ignoreCase = true) == true ||
             ex.message?.contains(IDEMPOTENCY_KEY_CONSTRAINT, ignoreCase = true) == true
     }
+
+    private fun throwManualSendNotAllowed(
+        targetType: DiscordDeliveryTargetType,
+        targetId: Long,
+    ): Nothing = throw DiscordDeliveryManualSendNotAllowedException(targetType, targetId, "DELIVERY_EXISTS")
 
     private companion object {
         const val IDEMPOTENCY_KEY_CONSTRAINT = "uk_discord_deliveries_idempotency_key"
