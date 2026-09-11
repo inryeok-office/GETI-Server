@@ -212,6 +212,7 @@ private fun AuthorizeHttpRequestsDsl.applyNormalSecurityRules() {
     // 담당자 본인만 수정할 수 있는지는 기준이 확정되지 않아 역할까지만 검증한다.
     // 더 구체적인 admin 경로를 먼저 선언해야 아래 조회 규칙에 가려지지 않는다.
     authorize("/api/v1/admin/jobs", hasAnyRole("TEACHER", "DEVELOPER"))
+    authorize(HttpMethod.POST, "/api/v1/admin/jobs/*/discord/send", hasRole("DEVELOPER"))
     authorize("/api/v1/admin/jobs/**", hasAnyRole("TEACHER", "DEVELOPER"))
     // Collector 운영(수집원 관리·수동 실행·수집 실행 이력)은 개발자만 접근한다(Issue #62).
     authorize("/api/v1/admin/job-sources", hasRole("DEVELOPER"))
@@ -244,6 +245,7 @@ private fun AuthorizeHttpRequestsDsl.applyNormalSecurityRules() {
     // 알 수 없어 ProgramService가 별도로 수행한다. 더 구체적인 admin 경로를 먼저
     // 선언해야 아래 조회 규칙에 가려지지 않는다.
     authorize("/api/v1/admin/programs", hasAnyRole("TEACHER", "DEVELOPER"))
+    authorize(HttpMethod.POST, "/api/v1/admin/programs/*/discord/send", hasRole("DEVELOPER"))
     authorize("/api/v1/admin/programs/**", hasAnyRole("TEACHER", "DEVELOPER"))
     // 프로그램 신청·취소(원본 요구사항 문서 11절 권한: STUDENT)는 Role 자체가
     // 학생으로 고정되므로 여기서 STUDENT Role을 요구한다. 재학 여부(NOT_ENROLLED)는

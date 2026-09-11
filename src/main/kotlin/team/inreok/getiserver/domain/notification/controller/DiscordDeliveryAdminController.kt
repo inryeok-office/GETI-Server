@@ -162,6 +162,27 @@ class DiscordDeliveryAdminController(
         ApiResponse.of(discordDeliveryService.findStatus(DiscordDeliveryTargetType.JOB, jobId))
 
     @Operation(
+        summary = "공고 Discord 전달 수동 발송 요청",
+        description = """
+            PUBLISHED 공고에 최초 Discord CREATE Delivery가 없을 때 현재 데이터로 Delivery를 enqueue한다.
+            FAILED Delivery는 재시도 API를 사용한다.
+        """,
+    )
+    @ApiResponses(
+        SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue 성공"),
+        SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 권한이 없음"),
+        SwaggerApiResponse(responseCode = "404", description = "공고가 없음"),
+        SwaggerApiResponse(responseCode = "409", description = "PUBLISHED가 아니거나 기존 CREATE Delivery가 있음"),
+    )
+    @PostMapping(
+        "/api/v1/admin/jobs/{jobId}/discord/send",
+    )
+    fun sendJobDiscord(
+        @Parameter(description = "수동 발송할 공고 ID", example = "1") @PathVariable jobId: Long,
+    ): ApiResponse<DiscordDeliveryStatusResponse> =
+        ApiResponse.of(discordDeliveryService.sendManually(DiscordDeliveryTargetType.JOB, jobId))
+
+    @Operation(
         summary = "공고 Discord 전달 수동 재시도",
         description = """
             FAILED 상태인 공고 Discord Delivery를 다시 시도 대기 상태로 되돌린다. 새 Delivery를
@@ -219,6 +240,27 @@ class DiscordDeliveryAdminController(
         requireProgramManager(authentication, programId)
         return ApiResponse.of(discordDeliveryService.findStatus(DiscordDeliveryTargetType.PROGRAM, programId))
     }
+
+    @Operation(
+        summary = "프로그램 Discord 전달 수동 발송 요청",
+        description = """
+            PUBLISHED 프로그램에 최초 Discord CREATE Delivery가 없을 때 현재 데이터로 Delivery를 enqueue한다.
+            FAILED Delivery는 재시도 API를 사용한다.
+        """,
+    )
+    @ApiResponses(
+        SwaggerApiResponse(responseCode = "200", description = "Delivery enqueue 성공"),
+        SwaggerApiResponse(responseCode = "403", description = "DEVELOPER 권한이 없음"),
+        SwaggerApiResponse(responseCode = "404", description = "프로그램이 없음"),
+        SwaggerApiResponse(responseCode = "409", description = "PUBLISHED가 아니거나 기존 CREATE Delivery가 있음"),
+    )
+    @PostMapping(
+        "/api/v1/admin/programs/{programId}/discord/send",
+    )
+    fun sendProgramDiscord(
+        @Parameter(description = "수동 발송할 프로그램 ID", example = "1") @PathVariable programId: Long,
+    ): ApiResponse<DiscordDeliveryStatusResponse> =
+        ApiResponse.of(discordDeliveryService.sendManually(DiscordDeliveryTargetType.PROGRAM, programId))
 
     @Operation(
         summary = "프로그램 Discord 전달 수동 재시도",

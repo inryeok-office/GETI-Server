@@ -23,6 +23,10 @@ enum class DiscordDeliveryErrorCode(
     /** 수동 재시도 상한을 모두 소진한 경우다(§18). */
     DISCORD_DELIVERY_RETRY_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "수동 재시도 가능 횟수를 모두 사용했습니다."),
 
+    DISCORD_DELIVERY_MANUAL_SEND_NOT_ALLOWED(HttpStatus.CONFLICT, "현재 대상 상태에서는 Discord 수동 발송을 요청할 수 없습니다."),
+
+    DISCORD_DELIVERY_MANUAL_SEND_UNSUPPORTED(HttpStatus.BAD_REQUEST, "해당 대상 유형은 Discord 수동 발송을 지원하지 않습니다."),
+
     /**
      * Program Discord 상태 조회·재시도를 등록자·담당 교사·개발자가 아닌 사용자가 요청한 경우다
      * (요구사항 §37). `domain.program.exception.ProgramManageForbiddenException`은 Module

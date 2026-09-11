@@ -58,4 +58,13 @@ interface DiscordDeliveryService {
         targetType: DiscordDeliveryTargetType,
         targetId: Long,
     ): DiscordDeliveryStatusResponse
+
+    /**
+     * 기존 원본의 최초 PUBLISHED CREATE Delivery가 없는 경우에만 수동 enqueue한다.
+     * FAILED Delivery는 이 계약이 아니라 [retryManuallyForTarget]을 사용한다.
+     */
+    fun sendManually(
+        targetType: DiscordDeliveryTargetType,
+        targetId: Long,
+    ): DiscordDeliveryStatusResponse
 }
