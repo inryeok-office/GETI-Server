@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import team.inreok.getiserver.domain.inquiry.query.InquiryDiscordPayloadQueryPort
 import team.inreok.getiserver.domain.job.query.JobDiscordPayloadQueryPort
+import team.inreok.getiserver.domain.job.query.JobNotificationTargetQueryPort
 import team.inreok.getiserver.domain.notification.config.DiscordBotProperties
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryEnqueueCommand
 import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryStatusResponse
@@ -18,6 +19,9 @@ import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryAtt
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryAttemptType
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType
+import team.inreok.getiserver.domain.notification.entity.type.DiscordMessageTemplate
+import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryManualSendNotAllowedException
+import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryManualSendUnsupportedException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotFoundException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotFoundForTargetException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotRetryableException
@@ -33,6 +37,8 @@ import team.inreok.getiserver.domain.notification.service.DiscordIdempotencyKeys
 import team.inreok.getiserver.domain.notification.service.DiscordPatchCommand
 import team.inreok.getiserver.domain.notification.service.DiscordPayloadFactory
 import team.inreok.getiserver.domain.program.query.ProgramDiscordPayloadQueryPort
+import team.inreok.getiserver.domain.program.query.ProgramNotificationTargetQueryPort
+import team.inreok.getiserver.global.discord.DiscordChannelResolver
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -70,11 +76,20 @@ class DiscordDeliveryServiceImpl(
     private val jobPayloadQueryPort: JobDiscordPayloadQueryPort,
     private val programPayloadQueryPort: ProgramDiscordPayloadQueryPort,
     private val inquiryPayloadQueryPort: InquiryDiscordPayloadQueryPort,
+    private val jobNotificationTargetQueryPort: JobNotificationTargetQueryPort,
+    private val programNotificationTargetQueryPort: ProgramNotificationTargetQueryPort,
+    private val discordChannelResolver: DiscordChannelResolver,
 ) : DiscordDeliveryService {
     private val log = LoggerFactory.getLogger(DiscordDeliveryServiceImpl::class.java)
 
     @Transactional
-    override fun enqueue(command: DiscordDeliveryEnqueueCommand): Long {
+    override fun enqueue(command: DiscordDeliveryEnqueueCommand): Long =
+        enqueueInternal(command, rejectExisting = false)
+
+    private fun enqueueInternal(
+        command: DiscordDeliveryEnqueueCommand,
+        rejectExisting: Boolean,
+    ): Long {
         val template = command.template
         val idempotencyKey =
             DiscordIdempotencyKeys.of(
@@ -85,6 +100,12 @@ class DiscordDeliveryServiceImpl(
             )
 
         deliveryRepository.findByIdempotencyKey(idempotencyKey)?.let { existing ->
+            if (rejectExisting) {
+                throwManualSendNotAllowed(
+                    template.targetType,
+                    command.targetId,
+                )
+            }
             log.debug("이미 예약된 Discord 전달이라 재생성하지 않습니다: idempotencyKey={}", idempotencyKey)
             return requireNotNull(existing.id)
         }
@@ -118,6 +139,12 @@ class DiscordDeliveryServiceImpl(
             val existing =
                 deliveryRepository.findByIdempotencyKey(idempotencyKey)
                     ?: throw ex
+            if (rejectExisting) {
+                throwManualSendNotAllowed(
+                    template.targetType,
+                    command.targetId,
+                )
+            }
             log.debug("동시 생성으로 UNIQUE 제약에 걸려 기존 Delivery를 재사용합니다: idempotencyKey={}", idempotencyKey)
             requireNotNull(existing.id)
         }
@@ -184,6 +211,99 @@ class DiscordDeliveryServiceImpl(
             deliveryRepository.findFirstByTargetTypeAndTargetIdOrderByIdDesc(targetType, targetId)
                 ?: throw DiscordDeliveryNotFoundForTargetException(targetType, targetId)
         retryManually(requireNotNull(delivery.id))
+        return findStatus(targetType, targetId)
+    }
+
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "ThrowsCount")
+    @Transactional
+    override fun sendManually(
+        targetType: DiscordDeliveryTargetType,
+        targetId: Long,
+    ): DiscordDeliveryStatusResponse {
+        if (targetType == DiscordDeliveryTargetType.INQUIRY) {
+            throw DiscordDeliveryManualSendUnsupportedException(targetType)
+        }
+
+        val createIdempotencyKey =
+            DiscordIdempotencyKeys.of(
+                targetType = targetType,
+                targetId = targetId,
+                action = DiscordDeliveryAction.CREATE,
+                sourceUpdatedAt = null,
+            )
+        if (deliveryRepository.findByIdempotencyKey(createIdempotencyKey) != null) {
+            throw DiscordDeliveryManualSendNotAllowedException(targetType, targetId, "DELIVERY_EXISTS")
+        }
+
+        val targetStatus =
+            when (targetType) {
+                DiscordDeliveryTargetType.JOB -> {
+                    jobNotificationTargetQueryPort
+                        .findAllByIds(setOf(targetId))[targetId]
+                        ?.let { it.status to it.deleted }
+                }
+
+                DiscordDeliveryTargetType.PROGRAM -> {
+                    programNotificationTargetQueryPort
+                        .findAllByIds(setOf(targetId))[targetId]
+                        ?.let { it.status to it.deleted }
+                }
+
+                DiscordDeliveryTargetType.INQUIRY -> {
+                    null
+                }
+            } ?: throw DiscordDeliveryNotFoundForTargetException(targetType, targetId)
+
+        if (targetStatus.first != "PUBLISHED" || targetStatus.second) {
+            throw DiscordDeliveryManualSendNotAllowedException(targetType, targetId, targetStatus.first)
+        }
+
+        val command =
+            when (targetType) {
+                DiscordDeliveryTargetType.JOB -> {
+                    val snapshot =
+                        jobPayloadQueryPort.findById(targetId)
+                            ?: throw DiscordDeliveryNotFoundForTargetException(targetType, targetId)
+                    val channelId =
+                        discordChannelResolver.resolveJobChannelId(snapshot.discordChannelKey)
+                            ?: throw DiscordDeliveryManualSendNotAllowedException(
+                                targetType,
+                                targetId,
+                                "CHANNEL_NOT_CONFIGURED",
+                            )
+                    DiscordDeliveryEnqueueCommand(
+                        template = DiscordMessageTemplate.JOB_PUBLISHED,
+                        targetId = targetId,
+                        channelId = channelId,
+                        roleIds = discordChannelResolver.roleIdsForGrades(listOfNotNull(snapshot.targetGrade)),
+                    )
+                }
+
+                DiscordDeliveryTargetType.PROGRAM -> {
+                    val snapshot =
+                        programPayloadQueryPort.findById(targetId)
+                            ?: throw DiscordDeliveryNotFoundForTargetException(targetType, targetId)
+                    val channelId =
+                        discordChannelResolver.resolveProgramChannelId(snapshot.discordChannelId)
+                            ?: throw DiscordDeliveryManualSendNotAllowedException(
+                                targetType,
+                                targetId,
+                                "CHANNEL_NOT_CONFIGURED",
+                            )
+                    DiscordDeliveryEnqueueCommand(
+                        template = DiscordMessageTemplate.PROGRAM_PUBLISHED,
+                        targetId = targetId,
+                        channelId = channelId,
+                        roleIds = discordChannelResolver.roleIdsForGrades(snapshot.targetGrades),
+                    )
+                }
+
+                DiscordDeliveryTargetType.INQUIRY -> {
+                    error("Inquiry manual send is rejected above")
+                }
+            }
+
+        enqueueInternal(command, rejectExisting = true)
         return findStatus(targetType, targetId)
     }
 
@@ -435,6 +555,11 @@ class DiscordDeliveryServiceImpl(
         return constraintName?.equals(IDEMPOTENCY_KEY_CONSTRAINT, ignoreCase = true) == true ||
             ex.message?.contains(IDEMPOTENCY_KEY_CONSTRAINT, ignoreCase = true) == true
     }
+
+    private fun throwManualSendNotAllowed(
+        targetType: DiscordDeliveryTargetType,
+        targetId: Long,
+    ): Nothing = throw DiscordDeliveryManualSendNotAllowedException(targetType, targetId, "DELIVERY_EXISTS")
 
     private companion object {
         const val IDEMPOTENCY_KEY_CONSTRAINT = "uk_discord_deliveries_idempotency_key"
