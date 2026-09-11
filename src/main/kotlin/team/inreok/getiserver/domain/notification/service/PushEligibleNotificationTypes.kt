@@ -9,10 +9,14 @@ import team.inreok.getiserver.domain.notification.entity.type.NotificationType
  *
  * 포함: INQUIRY_ANSWERED, JOB_APPLICATION_STATUS_CHANGED, MEMBER_APPROVAL_RESULT,
  * PROGRAM_DELETED, JOB_PUBLISHED, PROGRAM_PUBLISHED, PROGRAM_APPLICATION_APPLIED,
- * PROGRAM_APPLICATION_CANCELED.
+ * PROGRAM_APPLICATION_CANCELED, PORTFOLIO_REQUEST_PUBLISHED.
  *
  * 제외: JOB_UPDATED, JOB_CLOSED, JOB_DELETED, PROGRAM_UPDATED, PROGRAM_CLOSED,
  * PROGRAM_VACANCY_AVAILABLE, SYSTEM.
+ *
+ * PORTFOLIO_REQUEST_PUBLISHED를 포함하는 이유는 마감(`dueAt`)이 있는 제출을 학생에게 직접
+ * 요구하는 알림이라서다 -- 앱을 열지 않으면 마감을 놓치므로 정보성 변경 알림과 성격이 다르다
+ * (Issue #331에서 확정).
  */
 object PushEligibleNotificationTypes {
     val TYPES: Set<NotificationType> =
@@ -25,6 +29,7 @@ object PushEligibleNotificationTypes {
             NotificationType.PROGRAM_PUBLISHED,
             NotificationType.PROGRAM_APPLICATION_APPLIED,
             NotificationType.PROGRAM_APPLICATION_CANCELED,
+            NotificationType.PORTFOLIO_REQUEST_PUBLISHED,
         )
 
     fun isEligible(type: NotificationType): Boolean = type in TYPES
