@@ -32,4 +32,15 @@ interface DiscordDeliveryAdminQueryService {
         channelId: String? = null,
         targetName: String? = null,
     ): DiscordDeliveryListResponse
+
+    fun listRecentByTargetGrade(
+        status: DiscordDeliveryStatus?,
+        pageable: Pageable,
+        startAt: LocalDateTime? = null,
+        endAt: LocalDateTime? = null,
+        targetType: DiscordDeliveryTargetType? = null,
+        channelId: String? = null,
+        targetName: String? = null,
+        targetGrade: Int,
+    ): DiscordDeliveryListResponse
 }

@@ -13,6 +13,7 @@ import team.inreok.getiserver.domain.notification.dto.DiscordDeliveryListRespons
 import team.inreok.getiserver.domain.notification.entity.DiscordDelivery
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryStatus
 import team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType
+import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryInvalidTargetGradeException
 import team.inreok.getiserver.domain.notification.exception.DiscordDeliveryNotFoundException
 import team.inreok.getiserver.domain.notification.repository.DiscordDeliveryRepository
 import team.inreok.getiserver.domain.notification.service.DiscordDeliveryAdminQueryService
@@ -65,7 +66,6 @@ class DiscordDeliveryAdminQueryServiceImpl(
         return delivery.toListItemResponse(targetNames, latestDeliveryIds)
     }
 
-    @Transactional(readOnly = true)
     override fun listRecent(
         status: DiscordDeliveryStatus?,
         pageable: Pageable,
@@ -74,24 +74,71 @@ class DiscordDeliveryAdminQueryServiceImpl(
         targetType: DiscordDeliveryTargetType?,
         channelId: String?,
         targetName: String?,
+    ): DiscordDeliveryListResponse =
+        listRecentInternal(status, pageable, startAt, endAt, targetType, channelId, targetName, null)
+
+    @Transactional(readOnly = true)
+    override fun listRecentByTargetGrade(
+        status: DiscordDeliveryStatus?,
+        pageable: Pageable,
+        startAt: LocalDateTime?,
+        endAt: LocalDateTime?,
+        targetType: DiscordDeliveryTargetType?,
+        channelId: String?,
+        targetName: String?,
+        targetGrade: Int,
+    ): DiscordDeliveryListResponse =
+        listRecentInternal(status, pageable, startAt, endAt, targetType, channelId, targetName, targetGrade)
+
+    private fun listRecentInternal(
+        status: DiscordDeliveryStatus?,
+        pageable: Pageable,
+        startAt: LocalDateTime?,
+        endAt: LocalDateTime?,
+        targetType: DiscordDeliveryTargetType?,
+        channelId: String?,
+        targetName: String?,
+        targetGrade: Int?,
     ): DiscordDeliveryListResponse {
+        if (targetGrade != null && targetGrade !in MIN_TARGET_GRADE..MAX_TARGET_GRADE) {
+            throw DiscordDeliveryInvalidTargetGradeException()
+        }
         val normalizedTargetName = targetName?.trim()?.takeIf { it.isNotEmpty() }
         val targetIds = normalizedTargetName?.let { findTargetIds(it, targetType) }
+        val targetGradeIds = targetGrade?.let { findTargetIdsByGrade(it, targetType) }
         // 정렬은 Repository Query가 id DESC로 고정한다. 클라이언트가 보낸 Sort를 그대로 넘기면
         // JPQL의 ORDER BY와 충돌하므로 Page 정보만 남긴다(NotificationServiceImpl.list와 동일).
+        val pageRequest = PageRequest.of(pageable.pageNumber, pageable.pageSize)
         val page =
-            deliveryRepository.findRecent(
-                status,
-                startAt,
-                endAt,
-                PageRequest.of(pageable.pageNumber, pageable.pageSize),
-                targetType,
-                channelId,
-                normalizedTargetName != null,
-                targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
-                targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
-                targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
-            )
+            if (targetGrade == null) {
+                deliveryRepository.findRecent(
+                    status,
+                    startAt,
+                    endAt,
+                    pageRequest,
+                    targetType,
+                    channelId,
+                    normalizedTargetName != null,
+                    targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
+                    targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
+                    targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
+                )
+            } else {
+                deliveryRepository.findRecentByTargetGrade(
+                    status,
+                    startAt,
+                    endAt,
+                    pageRequest,
+                    targetType,
+                    channelId,
+                    normalizedTargetName != null,
+                    targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
+                    targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
+                    targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
+                    targetGradeIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
+                    targetGradeIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
+                )
+            }
         if (page.isEmpty) return page.toListResponse(emptyMap(), emptySet())
 
         val targetNames = loadTargetNames(page.content)
@@ -115,6 +162,19 @@ class DiscordDeliveryAdminQueryServiceImpl(
                     DiscordDeliveryTargetType.INQUIRY,
                     inquiryPayloadQueryPort.findIdsByDisplayNameContaining(targetName),
                 )
+            }
+        }
+
+    private fun findTargetIdsByGrade(
+        targetGrade: Int,
+        targetType: DiscordDeliveryTargetType?,
+    ): Map<DiscordDeliveryTargetType, Set<Long>> =
+        buildMap {
+            if (targetType == null || targetType == DiscordDeliveryTargetType.JOB) {
+                put(DiscordDeliveryTargetType.JOB, jobPayloadQueryPort.findIdsByTargetGrade(targetGrade))
+            }
+            if (targetType == null || targetType == DiscordDeliveryTargetType.PROGRAM) {
+                put(DiscordDeliveryTargetType.PROGRAM, programPayloadQueryPort.findIdsByTargetGrade(targetGrade))
             }
         }
 
@@ -218,3 +278,6 @@ class DiscordDeliveryAdminQueryServiceImpl(
         val targetId: Long,
     )
 }
+
+private const val MIN_TARGET_GRADE = 1
+private const val MAX_TARGET_GRADE = 3

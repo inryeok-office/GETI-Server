@@ -122,19 +122,38 @@ class DiscordDeliveryAdminController(
         @Parameter(description = "대상 이름 부분 일치 Filter(선택). JOB/PROGRAM은 제목, INQUIRY는 문의 유형을 검색하며 앞뒤 공백은 제거한다.")
         @RequestParam(required = false)
         targetName: String?,
+        @Parameter(
+            description = "대상 학년 Filter. 1, 2, 3 중 하나. 원본 공고/프로그램의 대상 학년에 해당 학년이 포함된 전달만 조회한다. Inquiry에는 적용되지 않는다.",
+            example = "2",
+        )
+        @RequestParam(required = false)
+        targetGrade: Int?,
         @Parameter(description = "Pagination(page: 0부터 시작, size: 기본 20, 최대 100). sort는 무시된다.")
         pageable: Pageable,
     ): ApiResponse<DiscordDeliveryListResponse> =
         ApiResponse.of(
-            discordDeliveryAdminQueryService.listRecent(
-                status,
-                pageable,
-                startAt,
-                endAt,
-                targetType,
-                channelId,
-                targetName,
-            ),
+            if (targetGrade == null) {
+                discordDeliveryAdminQueryService.listRecent(
+                    status,
+                    pageable,
+                    startAt,
+                    endAt,
+                    targetType,
+                    channelId,
+                    targetName,
+                )
+            } else {
+                discordDeliveryAdminQueryService.listRecentByTargetGrade(
+                    status,
+                    pageable,
+                    startAt,
+                    endAt,
+                    targetType,
+                    channelId,
+                    targetName,
+                    targetGrade,
+                )
+            },
         )
 
     @Operation(
