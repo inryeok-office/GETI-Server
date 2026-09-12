@@ -55,6 +55,13 @@ interface DiscordDeliveryRepository : JpaRepository<DiscordDelivery, Long> {
             OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.INQUIRY
                 AND d.targetId IN :inquiryTargetIds)
           )
+          AND (
+            :hasTargetGrade = FALSE
+            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.JOB
+                AND d.targetId IN :jobTargetGradeIds)
+            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.PROGRAM
+                AND d.targetId IN :programTargetGradeIds)
+          )
         ORDER BY d.id DESC
         """,
     )
@@ -69,51 +76,7 @@ interface DiscordDeliveryRepository : JpaRepository<DiscordDelivery, Long> {
         @Param("jobTargetIds") jobTargetIds: Collection<Long> = setOf(-1),
         @Param("programTargetIds") programTargetIds: Collection<Long> = setOf(-1),
         @Param("inquiryTargetIds") inquiryTargetIds: Collection<Long> = setOf(-1),
-    ): Page<DiscordDelivery>
-
-    @Query(
-        """
-        SELECT d FROM DiscordDelivery d
-        WHERE (:status IS NULL OR d.status = :status)
-          AND (
-            d.lastAttemptAt >= COALESCE(:startAt, d.lastAttemptAt)
-            OR COALESCE(:startAt, d.lastAttemptAt) IS NULL
-          )
-          AND (
-            d.lastAttemptAt < COALESCE(:endAt, CURRENT_TIMESTAMP)
-            OR COALESCE(:endAt, d.lastAttemptAt) IS NULL
-          )
-          AND (:targetType IS NULL OR d.targetType = :targetType)
-          AND (:channelId IS NULL OR d.channelId = :channelId)
-          AND (
-            (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.JOB
-                AND d.targetId IN :jobTargetGradeIds)
-            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.PROGRAM
-                AND d.targetId IN :programTargetGradeIds)
-          )
-          AND (
-            :hasTargetName = FALSE
-            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.JOB
-                AND d.targetId IN :jobTargetIds)
-            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.PROGRAM
-                AND d.targetId IN :programTargetIds)
-            OR (d.targetType = team.inreok.getiserver.domain.notification.entity.type.DiscordDeliveryTargetType.INQUIRY
-                AND d.targetId IN :inquiryTargetIds)
-          )
-        ORDER BY d.id DESC
-        """,
-    )
-    fun findRecentByTargetGrade(
-        @Param("status") status: DiscordDeliveryStatus?,
-        @Param("startAt") startAt: LocalDateTime? = null,
-        @Param("endAt") endAt: LocalDateTime? = null,
-        pageable: Pageable,
-        @Param("targetType") targetType: DiscordDeliveryTargetType? = null,
-        @Param("channelId") channelId: String? = null,
-        @Param("hasTargetName") hasTargetName: Boolean = false,
-        @Param("jobTargetIds") jobTargetIds: Collection<Long> = setOf(-1),
-        @Param("programTargetIds") programTargetIds: Collection<Long> = setOf(-1),
-        @Param("inquiryTargetIds") inquiryTargetIds: Collection<Long> = setOf(-1),
+        @Param("hasTargetGrade") hasTargetGrade: Boolean = false,
         @Param("jobTargetGradeIds") jobTargetGradeIds: Collection<Long> = setOf(-1),
         @Param("programTargetGradeIds") programTargetGradeIds: Collection<Long> = setOf(-1),
     ): Page<DiscordDelivery>

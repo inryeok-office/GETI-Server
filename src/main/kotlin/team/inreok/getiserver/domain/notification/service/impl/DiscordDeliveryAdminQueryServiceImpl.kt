@@ -66,6 +66,7 @@ class DiscordDeliveryAdminQueryServiceImpl(
         return delivery.toListItemResponse(targetNames, latestDeliveryIds)
     }
 
+    @Transactional(readOnly = true)
     override fun listRecent(
         status: DiscordDeliveryStatus?,
         pageable: Pageable,
@@ -74,19 +75,7 @@ class DiscordDeliveryAdminQueryServiceImpl(
         targetType: DiscordDeliveryTargetType?,
         channelId: String?,
         targetName: String?,
-    ): DiscordDeliveryListResponse =
-        listRecentInternal(status, pageable, startAt, endAt, targetType, channelId, targetName, null)
-
-    @Transactional(readOnly = true)
-    override fun listRecentByTargetGrade(
-        status: DiscordDeliveryStatus?,
-        pageable: Pageable,
-        startAt: LocalDateTime?,
-        endAt: LocalDateTime?,
-        targetType: DiscordDeliveryTargetType?,
-        channelId: String?,
-        targetName: String?,
-        targetGrade: Int,
+        targetGrade: Int?,
     ): DiscordDeliveryListResponse =
         listRecentInternal(status, pageable, startAt, endAt, targetType, channelId, targetName, targetGrade)
 
@@ -110,35 +99,21 @@ class DiscordDeliveryAdminQueryServiceImpl(
         // JPQL의 ORDER BY와 충돌하므로 Page 정보만 남긴다(NotificationServiceImpl.list와 동일).
         val pageRequest = PageRequest.of(pageable.pageNumber, pageable.pageSize)
         val page =
-            if (targetGrade == null) {
-                deliveryRepository.findRecent(
-                    status,
-                    startAt,
-                    endAt,
-                    pageRequest,
-                    targetType,
-                    channelId,
-                    normalizedTargetName != null,
-                    targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
-                    targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
-                    targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
-                )
-            } else {
-                deliveryRepository.findRecentByTargetGrade(
-                    status,
-                    startAt,
-                    endAt,
-                    pageRequest,
-                    targetType,
-                    channelId,
-                    normalizedTargetName != null,
-                    targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
-                    targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
-                    targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
-                    targetGradeIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
-                    targetGradeIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
-                )
-            }
+            deliveryRepository.findRecent(
+                status,
+                startAt,
+                endAt,
+                pageRequest,
+                targetType,
+                channelId,
+                normalizedTargetName != null,
+                targetIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
+                targetIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
+                targetIds?.get(DiscordDeliveryTargetType.INQUIRY).orPlaceholder(),
+                targetGrade != null,
+                targetGradeIds?.get(DiscordDeliveryTargetType.JOB).orPlaceholder(),
+                targetGradeIds?.get(DiscordDeliveryTargetType.PROGRAM).orPlaceholder(),
+            )
         if (page.isEmpty) return page.toListResponse(emptyMap(), emptySet())
 
         val targetNames = loadTargetNames(page.content)

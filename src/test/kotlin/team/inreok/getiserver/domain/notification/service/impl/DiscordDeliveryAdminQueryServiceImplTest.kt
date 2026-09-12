@@ -230,6 +230,9 @@ class DiscordDeliveryAdminQueryServiceImplTest {
             anyIdSet(),
             anyIdSet(),
             anyIdSet(),
+            anyBoolean(),
+            anyIdSet(),
+            anyIdSet(),
         )
         assertThat(statusCaptor.value).isEqualTo(DiscordDeliveryStatus.FAILED)
     }
@@ -253,6 +256,9 @@ class DiscordDeliveryAdminQueryServiceImplTest {
             any(),
             anyBoolean(),
             anyIdSet(),
+            anyIdSet(),
+            anyIdSet(),
+            anyBoolean(),
             anyIdSet(),
             anyIdSet(),
         )
@@ -292,6 +298,9 @@ class DiscordDeliveryAdminQueryServiceImplTest {
             anyIdSet(),
             anyIdSet(),
             anyIdSet(),
+            anyBoolean(),
+            anyIdSet(),
+            anyIdSet(),
         )
     }
 
@@ -306,7 +315,7 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         given(jobPayloadQueryPort.findIdsByTargetGrade(2)).willReturn(setOf(10L))
         given(programPayloadQueryPort.findIdsByTargetGrade(2)).willReturn(setOf(20L))
         given(
-            deliveryRepository.findRecentByTargetGrade(
+            deliveryRepository.findRecent(
                 null,
                 null,
                 null,
@@ -317,6 +326,7 @@ class DiscordDeliveryAdminQueryServiceImplTest {
                 setOf(-1L),
                 setOf(-1L),
                 setOf(-1L),
+                true,
                 setOf(10L),
                 setOf(20L),
             ),
@@ -324,7 +334,7 @@ class DiscordDeliveryAdminQueryServiceImplTest {
         given(jobPayloadQueryPort.findDisplayNamesByIds(setOf(10L))).willReturn(mapOf(10L to "공고"))
         given(deliveryRepository.findLatestDeliveryIds(anyTargetTypeSet(), anyIdSet())).willReturn(listOf(1L))
 
-        val response = service().listRecentByTargetGrade(null, PageRequest.of(0, 20), targetGrade = 2)
+        val response = service().listRecent(null, PageRequest.of(0, 20), targetGrade = 2)
 
         assertThat(response.totalElements).isEqualTo(1)
         assertThat(response.content.single().targetId).isEqualTo(10L)
@@ -352,6 +362,9 @@ class DiscordDeliveryAdminQueryServiceImplTest {
                 any(),
                 anyBoolean(),
                 anyIdSet(),
+                anyIdSet(),
+                anyIdSet(),
+                anyBoolean(),
                 anyIdSet(),
                 anyIdSet(),
             ),
